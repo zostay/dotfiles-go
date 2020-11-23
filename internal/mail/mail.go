@@ -1,14 +1,12 @@
 package mail
 
 import (
-	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 	"strings"
 	"time"
 
 	"github.com/emersion/go-maildir"
-	"gopkg.in/yaml.v3"
 
 	"github.com/zostay/dotfiles-go/internal/dotfiles"
 )
@@ -44,6 +42,8 @@ func init() {
 type Filter struct {
 	MailRoot string
 	Rules    CompiledRules
+
+	LimitRecent time.Duration
 }
 
 func NewFilter(root string) (*Filter, error) {
@@ -56,6 +56,14 @@ func NewFilter(root string) (*Filter, error) {
 		MailRoot: root,
 		Rules:    f,
 	}, nil
+}
+
+func (fi *Filter) LimitFilterToRecent(limit time.Duration) {
+	fi.LimitRecent = limit
+}
+
+func (fi *Filter) LimitSince() time.Time {
+	return time.Now().Add(-fi.LimitRecent)
 }
 
 func (fi *Filter) folder(folder string) maildir.Dir {
@@ -72,8 +80,29 @@ func (fi *Filter) Messages(folder string) ([]*Message, error) {
 		return ms, err
 	}
 
+	var since time.Time
+	if fi.LimitRecent > 0 {
+		since = fi.LimitSince()
+	}
+
 	ms = make([]*Message, len(ks))
 	for i, k := range ks {
+		if fi.LimitRecent > 0 {
+			fn, err := f.Filename(k)
+			if err != nil {
+				return ms, err
+			}
+
+			info, err := os.Stat(fn)
+			if err != nil {
+				return ms, err
+			}
+
+			if info.ModTime().Before(since) {
+				continue
+			}
+		}
+
 		ms[i] = NewMessage(f, k)
 	}
 
@@ -112,7 +141,7 @@ func (fi *Filter) LabelFolderMessages(
 	}
 
 	for _, msg := range msgs {
-		if _, skip := skipFolder[string(msg.folder)]; skip {
+		if _, skip := SkipFolder[string(msg.folder)]; skip {
 			continue
 		}
 
@@ -125,7 +154,7 @@ func (fi *Filter) LabelFolderMessages(
 		}
 
 		for _, cr := range rules {
-			as, err := msg.ApplyRule(cr)
+			as, err := msg.ApplyRule(fi, cr)
 			if err != nil {
 				return err
 			}
@@ -203,7 +232,7 @@ func (fi *Filter) Vacuum(logf func(fmt string, opts ...interface{})) error {
 			continue
 		}
 
-		if isUnwanted(folder) {
+		if isUnwanted(folder.Name()) {
 			logf("Droppping %s", folder.Name())
 
 			msgs, err := fi.Messages(folder.Name())
@@ -217,7 +246,7 @@ func (fi *Filter) Vacuum(logf func(fmt string, opts ...interface{})) error {
 					return err
 				}
 
-				msg.MoveTo(other)
+				msg.MoveTo(fi.MailRoot, other)
 				msg.RemoveKeyword(other)
 				msg.Save()
 				logf(" -> Moved %s to %s", folder.Name(), other)
@@ -246,9 +275,16 @@ func (fi *Filter) Vacuum(logf func(fmt string, opts ...interface{})) error {
 				change := 0
 
 				// Cleanup unwanted chars in keywords
-				if msg.HasNonconformingKeywords {
+				nonconforming, err := msg.HasNonconformingKeywords()
+				if err != nil {
+					return err
+				}
+				if nonconforming {
 					logf("Fixing non-conforming keywords.")
-					msg.CleanupKeywords()
+					err := msg.CleanupKeywords()
+					if err != nil {
+						return err
+					}
 					change++
 				}
 
@@ -257,7 +293,7 @@ func (fi *Filter) Vacuum(logf func(fmt string, opts ...interface{})) error {
 				if err != nil {
 					return err
 				}
-				if unwanted != "" {
+				if len(unwanted) > 0 {
 					logf("Fixing (%s) to %s.", strings.Join(unwanted, ", "), wanted)
 					change++
 					msg.RemoveKeyword(unwanted...)

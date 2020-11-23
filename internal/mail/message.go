@@ -161,6 +161,17 @@ func (m *Message) MissingKeyword(names ...string) (bool, error) {
 	return true, nil
 }
 
+func (m *Message) CleanupKeywords() error {
+	ks, err := m.Keywords()
+	if err != nil {
+		return err
+	}
+
+	m.m.Header.Set("Keywords", strings.Join(ks, " "))
+
+	return nil
+}
+
 func (m *Message) AddKeyword(names ...string) error {
 	if len(names) == 0 {
 		return nil
@@ -246,8 +257,8 @@ func (m *Message) Folder() (string, error) {
 	return path.Base(string(m.folder)), nil
 }
 
-type skipTest func(*Message, CompiledRule) (skipResult, error)
-type ruleTest func(*Message, CompiledRule, *int) (testResult, error)
+type skipTest func(*Message, *CompiledRule) (skipResult, error)
+type ruleTest func(*Message, *CompiledRule, *int) (testResult, error)
 
 type skipResult struct {
 	skip   bool
@@ -261,7 +272,7 @@ type testResult struct {
 
 var (
 	skipTests = []skipTest{
-		func(m *Message, c CompiledRule) (skipResult, error) {
+		func(m *Message, c *CompiledRule) (skipResult, error) {
 			if !c.IsLabeling() {
 				return skipResult{false, "not labeling"}, nil
 			}
@@ -274,7 +285,7 @@ var (
 			return skipResult{true, "already labeled as such"}, err
 		},
 
-		func(m *Message, c CompiledRule) (skipResult, error) {
+		func(m *Message, c *CompiledRule) (skipResult, error) {
 			if !c.IsClearing() {
 				return skipResult{false, "not clearing"}, nil
 			}
@@ -287,7 +298,7 @@ var (
 			return skipResult{true, "not labeled as such"}, err
 		},
 
-		func(m *Message, c CompiledRule) (skipResult, error) {
+		func(m *Message, c *CompiledRule) (skipResult, error) {
 			if !c.IsMoving() {
 				return skipResult{false, "not moving"}, nil
 			}
@@ -300,7 +311,7 @@ var (
 			return skipResult{true, "in the same folder"}, err
 		},
 
-		func(m *Message, c CompiledRule) (skipResult, error) {
+		func(m *Message, c *CompiledRule) (skipResult, error) {
 			ok, err := m.HasKeyword("\\Starred")
 			if ok {
 				return skipResult{true, "do not modify \\Starred"}, err
@@ -311,7 +322,7 @@ var (
 	}
 
 	ruleTests = []ruleTest{
-		func(m *Message, c CompiledRule, tests *int) (testResult, error) {
+		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if !c.HasOkayDate() {
 				return testResult{true, "no okay date"}, nil
 			}
@@ -326,7 +337,7 @@ var (
 			return testResult{false, "message is older than okay date"}, err
 		},
 
-		func(m *Message, c CompiledRule, tests *int) (testResult, error) {
+		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.From == "" {
 				return testResult{true, "no from test"}, nil
 			}
@@ -337,7 +348,7 @@ var (
 			return testAddress("From", "from", c.From, from, err)
 		},
 
-		func(m *Message, c CompiledRule, tests *int) (testResult, error) {
+		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.FromDomain == "" {
 				return testResult{true, "no from domain test"}, nil
 			}
@@ -348,7 +359,7 @@ var (
 			return testDomain("From", "from", c.FromDomain, from, err)
 		},
 
-		func(m *Message, c CompiledRule, tests *int) (testResult, error) {
+		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.To == "" {
 				return testResult{true, "no to test"}, nil
 			}
@@ -359,7 +370,7 @@ var (
 			return testAddress("To", "to", c.To, to, err)
 		},
 
-		func(m *Message, c CompiledRule, tests *int) (testResult, error) {
+		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.ToDomain == "" {
 				return testResult{true, "no to domain test"}, nil
 			}
@@ -370,7 +381,7 @@ var (
 			return testDomain("To", "to", c.ToDomain, to, err)
 		},
 
-		func(m *Message, c CompiledRule, tests *int) (testResult, error) {
+		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.Sender == "" {
 				return testResult{true, "no sender test"}, nil
 			}
@@ -381,7 +392,7 @@ var (
 			return testAddress("Sender", "sender", c.Sender, sender, err)
 		},
 
-		func(m *Message, c CompiledRule, tests *int) (testResult, error) {
+		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.Subject == "" {
 				return testResult{true, "no exact subject test"}, nil
 			}
@@ -396,7 +407,7 @@ var (
 			return testResult{true, "message Subject exactly matches subject test"}, err
 		},
 
-		func(m *Message, c CompiledRule, tests *int) (testResult, error) {
+		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.SubjectFold == "" {
 				return testResult{true, "no folded case subject test"}, nil
 			}
@@ -411,7 +422,7 @@ var (
 			return testResult{true, "message Subject matches folded case of subject test"}, err
 		},
 
-		func(m *Message, c CompiledRule, tests *int) (testResult, error) {
+		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.SubjectContains == "" {
 				return testResult{true, "no subject contains test"}, nil
 			}
@@ -426,7 +437,7 @@ var (
 			return testResult{true, "message Subject passes contains subject test"}, err
 		},
 
-		func(m *Message, c CompiledRule, tests *int) (testResult, error) {
+		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.SubjectContainsFold == "" {
 				return testResult{true, "no subject contains subject folded case test"}, nil
 			}
@@ -441,7 +452,7 @@ var (
 			return testResult{true, "message Subject passes cotnains subject folded case test"}, err
 		},
 
-		func(m *Message, c CompiledRule, tests *int) (testResult, error) {
+		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.Contains == "" {
 				return testResult{true, "no contains anywhere test"}, nil
 			}
@@ -456,7 +467,7 @@ var (
 			return testResult{true, "message passes contains anywhere test"}, err
 		},
 
-		func(m *Message, c CompiledRule, tests *int) (testResult, error) {
+		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.ContainsFold == "" {
 				return testResult{true, "no contains anywhere folded case test"}, nil
 			}
@@ -503,7 +514,7 @@ func testDomain(dbgh, dbgt, expect string, got []*mail.Address, err error) (test
 	return testResult{false, fmt.Sprintf("message %s header does not match %s domain test", dbgh, dbgt)}, err
 }
 
-func (m *Message) ApplyRule(c CompiledRule) ([]string, error) {
+func (m *Message) ApplyRule(fi *Filter, c *CompiledRule) ([]string, error) {
 	var (
 		fail    string
 		passes  = make([]string, 0)
@@ -511,16 +522,16 @@ func (m *Message) ApplyRule(c CompiledRule) ([]string, error) {
 	)
 
 	for _, skippable := range skipTests {
-		skip, msg, err := skippable(m, c)
+		r, err := skippable(m, c)
 
 		if err != nil {
 			return actions, err
 		}
 
-		if !skip {
-			passes = append(passes, msg)
+		if !r.skip {
+			passes = append(passes, r.reason)
 		} else {
-			fail = msg
+			fail = r.reason
 			break
 		}
 	}
@@ -531,16 +542,16 @@ func (m *Message) ApplyRule(c CompiledRule) ([]string, error) {
 
 	tests := 0
 	for _, applies := range ruleTests {
-		pass, msg, err := applies(m, c, &tests)
+		r, err := applies(m, c, &tests)
 
 		if err != nil {
 			return actions, err
 		}
 
-		if pass {
-			passes = append(passes, msg)
+		if r.pass {
+			passes = append(passes, r.reason)
 		} else {
-			fail = msg
+			fail = r.reason
 		}
 	}
 
@@ -594,7 +605,7 @@ func (m *Message) ApplyRule(c CompiledRule) ([]string, error) {
 				return actions, err
 			}
 		}
-		actions = append(actions, "Forwarded "+strings.Join(c.Forward))
+		actions = append(actions, "Forwarded "+strings.Join(c.Forward, ", "))
 	}
 
 	if len(actions) > 0 && !m.DryRun {
@@ -606,7 +617,7 @@ func (m *Message) ApplyRule(c CompiledRule) ([]string, error) {
 
 	if c.IsMoving() {
 		if !m.DryRun {
-			err := m.MoveTo(c.Move)
+			err := m.MoveTo(fi.MailRoot, c.Move)
 			if err != nil {
 				return actions, err
 			}
@@ -698,12 +709,12 @@ func (m *Message) Save() error {
 	}
 
 	m.e.Header = msg.Header.Header
-	key, w, err := m.maildir.Create([]Flag{})
+	key, w, err := m.folder.Create([]maildir.Flag{})
 	if err != nil {
 		return err
 	}
 
-	err = m.maildir.Remove(m.key)
+	err = m.folder.Remove(m.key)
 	if err != nil {
 		return err
 	}

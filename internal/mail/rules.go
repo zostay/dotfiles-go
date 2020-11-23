@@ -172,7 +172,7 @@ func LoadRules() (CompiledRules, error) {
 			Forward: compiledForward,
 		}
 
-		crs = append(crs, cr)
+		crs = append(crs, &cr)
 	}
 
 	return crs, nil
@@ -216,7 +216,7 @@ func CompileLabel(name string, label interface{}) []string {
 }
 
 func (crs CompiledRules) FolderRules() CompiledFolderRules {
-	fcrs := make(map[string]CompiledRules)
+	fcrs := make(CompiledFolderRules)
 
 	for _, cr := range crs {
 		if cr.NeedsOkayDate() {
@@ -225,7 +225,7 @@ func (crs CompiledRules) FolderRules() CompiledFolderRules {
 				days = cr.Days
 			}
 
-			cr.OkayDate = time.Now().Add(-days * time.Hour * 24)
+			cr.OkayDate = time.Now().Add(time.Duration(-days) * time.Hour * 24)
 		}
 
 		folder := ""
@@ -250,7 +250,7 @@ func (crs CompiledRules) FolderRules() CompiledFolderRules {
 
 type CompiledFolderRules map[string]CompiledRules
 
-func (fcrs CompiledFolderRules) Add(folder string, cr CompiledRule) {
+func (fcrs CompiledFolderRules) Add(folder string, cr *CompiledRule) {
 	if fcr, ok := fcrs[folder]; ok {
 		fcrs[folder] = append(fcr, cr)
 	} else {

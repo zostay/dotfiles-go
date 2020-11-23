@@ -13,9 +13,9 @@ import (
 )
 
 var (
-	cmd        *cobra.Command
-	allFolders bool
-	mailDir    string
+	cmd     *cobra.Command
+	allMail bool
+	mailDir string
 )
 
 func init() {
@@ -25,17 +25,12 @@ func init() {
 		Run:   RunLabelMail,
 	}
 
-	cmd.PersistentFlags().BoolVar(&allFolders, "a", false, "run against mail from all time")
+	cmd.PersistentFlags().BoolVar(&allMail, "a", false, "run against mail from all time")
 	cmd.PersistentFlags().StringVar(&mailDir, "maildir", mail.DefaultMailDir, "the root directory for mail")
 }
 
 func RunLabelMail(cmd *cobra.Command, args []string) {
-	rules, err := mail.LoadRules()
-	if err != nil {
-		panic(err)
-	}
-
-	filter, err := mail.NewFilter(mailDir, rules)
+	filter, err := mail.NewFilter(mailDir)
 	if err != nil {
 		panic(err)
 	}
