@@ -16,6 +16,8 @@ var (
 	cmd     *cobra.Command
 	allMail bool
 	mailDir string
+	dryRun  bool
+	verbose int
 )
 
 func init() {
@@ -25,8 +27,10 @@ func init() {
 		Run:   RunLabelMail,
 	}
 
-	cmd.PersistentFlags().BoolVar(&allMail, "a", false, "run against mail from all time")
+	cmd.PersistentFlags().BoolVarP(&allMail, "all-mail", "a", false, "run against mail from all time")
 	cmd.PersistentFlags().StringVar(&mailDir, "maildir", mail.DefaultMailDir, "the root directory for mail")
+	cmd.PersistentFlags().BoolVarP(&dryRun, "dry-run", "d", false, "perform a dry run")
+	cmd.PersistentFlags().CountVarP(&verbose, "verbose", "v", "enable debugging verbose mode")
 }
 
 func RunLabelMail(cmd *cobra.Command, args []string) {
@@ -38,6 +42,9 @@ func RunLabelMail(cmd *cobra.Command, args []string) {
 	if !allMail {
 		filter.LimitFilterToRecent(2 * time.Hour)
 	}
+
+	filter.DryRun = dryRun
+	filter.Debug = verbose
 
 	actions, err := filter.LabelMessages()
 	if err != nil {

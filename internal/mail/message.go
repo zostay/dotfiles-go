@@ -30,9 +30,6 @@ var (
 )
 
 type Message struct {
-	Debug  int
-	DryRun bool
-
 	key    string
 	folder maildir.Dir
 	e      *message.Entity
@@ -512,120 +509,6 @@ func testDomain(dbgh, dbgt, expect string, got []*mail.Address, err error) (test
 	}
 
 	return testResult{false, fmt.Sprintf("message %s header does not match %s domain test", dbgh, dbgt)}, err
-}
-
-func (m *Message) ApplyRule(fi *Filter, c *CompiledRule) ([]string, error) {
-	var (
-		fail    string
-		passes  = make([]string, 0)
-		actions []string
-	)
-
-	for _, skippable := range skipTests {
-		r, err := skippable(m, c)
-
-		if err != nil {
-			return actions, err
-		}
-
-		if !r.skip {
-			passes = append(passes, r.reason)
-		} else {
-			fail = r.reason
-			break
-		}
-	}
-
-	if fail != "" {
-		return actions, nil
-	}
-
-	tests := 0
-	for _, applies := range ruleTests {
-		r, err := applies(m, c, &tests)
-
-		if err != nil {
-			return actions, err
-		}
-
-		if r.pass {
-			passes = append(passes, r.reason)
-		} else {
-			fail = r.reason
-		}
-	}
-
-	// DEBUGGING
-	if m.Debug > 0 {
-		if fail != "" {
-			fmt.Fprintf(os.Stderr, "FAILED: %s.\n", fail)
-		}
-
-		if (len(passes) > 0 && fail == "") || m.Debug > 1 {
-			fmt.Fprintf(os.Stderr, "PASSES: %s.\n", strings.Join(passes, ", "))
-		}
-	}
-
-	if fail != "" {
-		return actions, nil
-	}
-
-	if tests == 0 {
-		return actions, nil
-	}
-
-	actions = make([]string, 0, 1)
-
-	if c.IsLabeling() {
-		if !m.DryRun {
-			err := m.AddKeyword(c.Label...)
-			if err != nil {
-				return actions, err
-			}
-		}
-
-		actions = append(actions, "Labeled "+strings.Join(c.Label, ", "))
-	}
-
-	if c.IsClearing() {
-		if !m.DryRun {
-			err := m.RemoveKeyword(c.Clear...)
-			if err != nil {
-				return actions, err
-			}
-		}
-
-		actions = append(actions, "Cleared "+strings.Join(c.Clear, ", "))
-	}
-
-	if c.IsForwarding() {
-		if !m.DryRun {
-			err := m.ForwardTo(c.Forward...)
-			if err != nil {
-				return actions, err
-			}
-		}
-		actions = append(actions, "Forwarded "+strings.Join(c.Forward, ", "))
-	}
-
-	if len(actions) > 0 && !m.DryRun {
-		err := m.Save()
-		if err != nil {
-			return actions, err
-		}
-	}
-
-	if c.IsMoving() {
-		if !m.DryRun {
-			err := m.MoveTo(fi.MailRoot, c.Move)
-			if err != nil {
-				return actions, err
-			}
-		}
-		actions = append(actions, "Moved "+c.Move)
-	}
-
-	return actions, nil
 }
 
 func (m *Message) ForwardTo(tos ...string) error {

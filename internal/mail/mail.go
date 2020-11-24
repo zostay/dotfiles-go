@@ -1,6 +1,7 @@
 package mail
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"strings"
@@ -44,6 +45,9 @@ type Filter struct {
 	Rules    CompiledRules
 
 	LimitRecent time.Duration
+
+	Debug  int
+	DryRun bool
 }
 
 func NewFilter(root string) (*Filter, error) {
@@ -154,7 +158,7 @@ func (fi *Filter) LabelFolderMessages(
 		}
 
 		for _, cr := range rules {
-			as, err := msg.ApplyRule(fi, cr)
+			as, err := fi.ApplyRule(msg, cr)
 			if err != nil {
 				return err
 			}
@@ -311,4 +315,118 @@ func (fi *Filter) Vacuum(logf func(fmt string, opts ...interface{})) error {
 	}
 
 	return nil
+}
+
+func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
+	var (
+		fail    string
+		passes  = make([]string, 0)
+		actions []string
+	)
+
+	for _, skippable := range skipTests {
+		r, err := skippable(m, c)
+
+		if err != nil {
+			return actions, err
+		}
+
+		if !r.skip {
+			passes = append(passes, r.reason)
+		} else {
+			fail = r.reason
+			break
+		}
+	}
+
+	if fail != "" {
+		return actions, nil
+	}
+
+	tests := 0
+	for _, applies := range ruleTests {
+		r, err := applies(m, c, &tests)
+
+		if err != nil {
+			return actions, err
+		}
+
+		if r.pass {
+			passes = append(passes, r.reason)
+		} else {
+			fail = r.reason
+		}
+	}
+
+	// DEBUGGING
+	if fi.Debug > 0 {
+		if fail != "" {
+			fmt.Fprintf(os.Stderr, "FAILED: %s.\n", fail)
+		}
+
+		if (len(passes) > 0 && fail == "") || fi.Debug > 1 {
+			fmt.Fprintf(os.Stderr, "PASSES: %s.\n", strings.Join(passes, ", "))
+		}
+	}
+
+	if fail != "" {
+		return actions, nil
+	}
+
+	if tests == 0 {
+		return actions, nil
+	}
+
+	actions = make([]string, 0, 1)
+
+	if c.IsLabeling() {
+		if !fi.DryRun {
+			err := m.AddKeyword(c.Label...)
+			if err != nil {
+				return actions, err
+			}
+		}
+
+		actions = append(actions, "Labeled "+strings.Join(c.Label, ", "))
+	}
+
+	if c.IsClearing() {
+		if !fi.DryRun {
+			err := m.RemoveKeyword(c.Clear...)
+			if err != nil {
+				return actions, err
+			}
+		}
+
+		actions = append(actions, "Cleared "+strings.Join(c.Clear, ", "))
+	}
+
+	if c.IsForwarding() {
+		if !fi.DryRun {
+			err := m.ForwardTo(c.Forward...)
+			if err != nil {
+				return actions, err
+			}
+		}
+		actions = append(actions, "Forwarded "+strings.Join(c.Forward, ", "))
+	}
+
+	if len(actions) > 0 && !fi.DryRun {
+		err := m.Save()
+		if err != nil {
+			return actions, err
+		}
+	}
+
+	if c.IsMoving() {
+		if !fi.DryRun {
+			err := m.MoveTo(fi.MailRoot, c.Move)
+			if err != nil {
+				return actions, err
+			}
+		}
+		actions = append(actions, "Moved "+c.Move)
+	}
+
+	return actions, nil
 }

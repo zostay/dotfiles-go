@@ -1,12 +1,12 @@
 package mail
 
 import (
-	"fmt"
 	"io/ioutil"
 	"path"
 	"strings"
 	"time"
 
+	"github.com/kr/pretty"
 	"gopkg.in/yaml.v3"
 
 	"github.com/zostay/dotfiles-go/internal/dotfiles"
@@ -148,19 +148,10 @@ func LoadRules() (CompiledRules, error) {
 			compiledMove = strings.Replace(compiledMove, "/", ".", -1)
 		}
 
-		var compiledForward []string
-		switch v := r.Forward.(type) {
-		case string:
-			compiledForward = []string{v}
-		case []string:
-			compiledForward = v
-		default:
-			compiledForward = []string{}
-			fmt.Printf("RULE HAS INCORRECT forward: %+v", r)
-		}
+		compiledForward := CompileField("forward", r.Forward)
 
 		if len(compiledLabel) == 0 && len(compiledClear) == 0 && compiledMove == "" && len(compiledForward) == 0 {
-			fmt.Printf("RULE MISSING ACTION %+v", r)
+			pretty.Printf("RULE MISSING ACTION %# v\n", r)
 			continue
 		}
 
@@ -178,17 +169,36 @@ func LoadRules() (CompiledRules, error) {
 	return crs, nil
 }
 
-func CompileLabel(name string, label interface{}) []string {
+func CompileField(name string, field interface{}) []string {
 	var r1 []string
-	switch v := label.(type) {
-	case string:
-		r1 = []string{v}
-	case []string:
-		r1 = v
-	default:
+	if field == nil {
 		r1 = []string{}
-		fmt.Printf("RULE HAS INCORRECT %s: %+v", name, r1)
+	} else {
+		switch v := field.(type) {
+		case string:
+			r1 = []string{v}
+		case []interface{}:
+			r1 = make([]string, len(v))
+			for i, vi := range v {
+				switch vv := vi.(type) {
+				case string:
+					r1[i] = vv
+				default:
+					r1[i] = ""
+					pretty.Printf("RULE HAS WEIRD %s: %# v\n", name, v)
+				}
+			}
+		default:
+			r1 = []string{}
+			pretty.Printf("RULE HAS INCORRECT %s: %# v\n", name, v)
+		}
 	}
+
+	return r1
+}
+
+func CompileLabel(name string, label interface{}) []string {
+	r1 := CompileField(name, label)
 
 	if len(r1) == 0 {
 		return r1

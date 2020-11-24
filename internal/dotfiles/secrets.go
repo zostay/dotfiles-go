@@ -1,23 +1,34 @@
 package dotfiles
 
 import (
+	"os"
 	"os/exec"
 	"path"
 	"strings"
 )
 
-var (
-	ZostayGetSecret = path.Join(HomeDir, "bin/zostay-get-secret")
+const (
+	ZostayGetSecretCommand = "bin/zostay-get-secret"
 )
+
+var (
+	ZostayGetSecret string
+)
+
+func init() {
+	var err error
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
+
+	ZostayGetSecret = path.Join(homedir, ZostayGetSecretCommand)
+}
 
 func GetSecret(name string) (string, error) {
 	var s string
 
 	c := exec.Command(ZostayGetSecret, name)
-	err := c.Run()
-	if err != nil {
-		return s, err
-	}
 
 	obs, err := c.Output()
 	if err != nil {
