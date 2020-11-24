@@ -69,7 +69,7 @@ func RunLabelMail(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	sort.Sort(sort.StringSlice(keys))
+	sort.Strings(keys)
 
 	kws := strconv.Itoa(kw)
 	cws := strconv.Itoa(cw)
@@ -87,5 +87,8 @@ func RunLabelMail(cmd *cobra.Command, args []string) {
 }
 
 func main() {
-	cmd.Execute()
+	err := cmd.Execute()
+	if err != nil {
+		panic(err)
+	}
 }

@@ -250,9 +250,21 @@ func (fi *Filter) Vacuum(logf func(fmt string, opts ...interface{})) error {
 					return err
 				}
 
-				msg.MoveTo(fi.MailRoot, other)
-				msg.RemoveKeyword(other)
-				msg.Save()
+				err = msg.MoveTo(fi.MailRoot, other)
+				if err != nil {
+					return err
+				}
+
+				err = msg.RemoveKeyword(other)
+				if err != nil {
+					return err
+				}
+
+				err = msg.Save()
+				if err != nil {
+					return err
+				}
+
 				logf(" -> Moved %s to %s", folder.Name(), other)
 			}
 
@@ -300,8 +312,15 @@ func (fi *Filter) Vacuum(logf func(fmt string, opts ...interface{})) error {
 				if len(unwanted) > 0 {
 					logf("Fixing (%s) to %s.", strings.Join(unwanted, ", "), wanted)
 					change++
-					msg.RemoveKeyword(unwanted...)
-					msg.AddKeyword(wanted)
+					err := msg.RemoveKeyword(unwanted...)
+					if err != nil {
+						return err
+					}
+
+					err = msg.AddKeyword(wanted)
+					if err != nil {
+						return err
+					}
 				}
 
 				if change > 0 {

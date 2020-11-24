@@ -95,7 +95,7 @@ func (m *Message) Keywords() ([]string, error) {
 		return unicode.IsSpace(c) || c == ','
 	})
 
-	sort.Sort(sort.StringSlice(ks))
+	sort.Strings(ks)
 
 	return ks, nil
 }
@@ -201,7 +201,7 @@ func (m *Message) updateKeywords(km map[string]struct{}) error {
 		ks = append(ks, k)
 	}
 
-	sort.Sort(sort.StringSlice(ks))
+	sort.Strings(ks)
 
 	msg.Header.Set("Keywords", strings.Join(ks, ", "))
 
@@ -555,7 +555,7 @@ func (m *Message) ForwardTo(tos ...string) error {
 		return err
 	}
 
-	sort.Sort(sort.StringSlice(zfws))
+	sort.Strings(zfws)
 
 	msg.Header.Set("X-Zostay-Forwarded", strings.Join(zfws, ", "))
 
