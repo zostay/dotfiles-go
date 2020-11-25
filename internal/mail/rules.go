@@ -70,7 +70,7 @@ func (c *CompiledRule) NeedsOkayDate() bool {
 }
 
 type RawRule struct {
-	Match
+	Match   `yaml:",inline"`
 	Clear   interface{} `yaml:"clear"`
 	Label   interface{} `yaml:"label"`
 	Move    string      `yaml:"move"`

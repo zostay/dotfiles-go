@@ -81,7 +81,7 @@ func (fi *Filter) Messages(folder string) ([]*Message, error) {
 
 	ks, err := f.Keys()
 	if err != nil {
-		return ms, err
+		return ms, fmt.Errorf("unable to retrieve keys from maildir %s: %w", f, err)
 	}
 
 	var since time.Time
@@ -94,12 +94,12 @@ func (fi *Filter) Messages(folder string) ([]*Message, error) {
 		if fi.LimitRecent > 0 {
 			fn, err := f.Filename(k)
 			if err != nil {
-				return ms, err
+				return ms, fmt.Errorf("unable to get filename for folder %s and key %s: %w", folder, k, err)
 			}
 
 			info, err := os.Stat(fn)
 			if err != nil {
-				return ms, err
+				return ms, fmt.Errorf("unable to stat %s: %w", fn, err)
 			}
 
 			if info.ModTime().Before(since) {
@@ -120,14 +120,67 @@ func (fi *Filter) Message(folder string, key string) *Message {
 
 type ActionsSummary map[string]int
 
+func (fi *Filter) AllFolders() ([]string, error) {
+	var folderNames []string
+
+	md, err := os.Open(fi.MailRoot)
+	if err != nil {
+		return folderNames, err
+	}
+
+	defer md.Close()
+
+	folders, err := md.Readdir(0)
+	if err != nil {
+		return folderNames, err
+	}
+
+	folderNames = make([]string, 0, len(folders))
+	for _, folder := range folders {
+		if !folder.IsDir() {
+			continue
+		}
+
+		folderNames = append(folderNames, folder.Name())
+	}
+
+	return folderNames, nil
+}
+
 func (fi *Filter) LabelMessages() (ActionsSummary, error) {
 	actions := make(ActionsSummary)
+
+	allFolders, err := fi.AllFolders()
+	if err != nil {
+		return actions, err
+	}
+
 	folders := fi.Rules.FolderRules()
 
-	for f, fr := range folders {
-		err := fi.LabelFolderMessages(actions, f, fr)
-		if err != nil {
-			return actions, err
+	var (
+		gr  CompiledRules
+		gok bool
+	)
+	if gr, gok = folders[""]; !gok {
+		gr = CompiledRules{}
+	}
+
+	for _, f := range allFolders {
+		var (
+			fr CompiledRules
+			ok bool
+		)
+		if fr, ok = folders[f]; ok || gok {
+			if !ok {
+				fr = make(CompiledRules, 0, len(gr))
+			}
+
+			fr = append(fr, gr...)
+
+			err := fi.LabelFolderMessages(actions, f, fr)
+			if err != nil {
+				return actions, err
+			}
 		}
 	}
 
@@ -219,27 +272,16 @@ func hasUnwantedKeyword(msg *Message) ([]string, string, error) {
 }
 
 func (fi *Filter) Vacuum(logf func(fmt string, opts ...interface{})) error {
-	md, err := os.Open(fi.MailRoot)
-	if err != nil {
-		return err
-	}
-
-	defer md.Close()
-
-	folders, err := md.Readdir(0)
+	folders, err := fi.AllFolders()
 	if err != nil {
 		return err
 	}
 
 	for _, folder := range folders {
-		if !folder.IsDir() {
-			continue
-		}
+		if isUnwanted(folder) {
+			logf("Droppping %s", folder)
 
-		if isUnwanted(folder.Name()) {
-			logf("Droppping %s", folder.Name())
-
-			msgs, err := fi.Messages(folder.Name())
+			msgs, err := fi.Messages(folder)
 			if err != nil {
 				return err
 			}
@@ -265,10 +307,10 @@ func (fi *Filter) Vacuum(logf func(fmt string, opts ...interface{})) error {
 					return err
 				}
 
-				logf(" -> Moved %s to %s", folder.Name(), other)
+				logf(" -> Moved %s to %s", folder, other)
 			}
 
-			deadFolder := path.Join(fi.MailRoot, folder.Name())
+			deadFolder := path.Join(fi.MailRoot, folder)
 			for _, sd := range []string{"new", "cur", "tmp"} {
 				err = os.Remove(path.Join(deadFolder, sd))
 				if err != nil {
@@ -280,9 +322,9 @@ func (fi *Filter) Vacuum(logf func(fmt string, opts ...interface{})) error {
 				logf("WARNING: cannot delete %s: %+v", deadFolder, err)
 			}
 		} else {
-			logf("Searching %s for broken Keywords.", folder.Name())
+			logf("Searching %s for broken Keywords.", folder)
 
-			msgs, err := fi.Messages(folder.Name())
+			msgs, err := fi.Messages(folder)
 			if err != nil {
 				return err
 			}

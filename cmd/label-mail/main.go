@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
@@ -34,6 +35,10 @@ func init() {
 }
 
 func RunLabelMail(cmd *cobra.Command, args []string) {
+	if mailDir == "" {
+		panic(errors.New("maildir did not work"))
+	}
+
 	filter, err := mail.NewFilter(mailDir)
 	if err != nil {
 		panic(err)
