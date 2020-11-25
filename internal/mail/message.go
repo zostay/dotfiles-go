@@ -29,6 +29,32 @@ var (
 	SASLPass  = dotfiles.MustGetSecret("LABEL_MAIL_PASSWORD")
 )
 
+var (
+	brokenStarts map[byte][]brokenFix
+
+	fixes = []brokenFix{
+		{[]byte("Content-Transfer-Encoding: 8-bit"),
+			[]byte("Content-Transfer-Encoding: 8bit")},
+	}
+)
+
+type brokenFix struct {
+	broken []byte
+	fix    []byte
+}
+
+func init() {
+	brokenStarts = make(map[byte][]brokenFix)
+	for _, bf := range fixes {
+		c := bf.broken[0]
+		if ks, ok := brokenStarts[c]; ok {
+			brokenStarts[c] = append(ks, bf)
+		} else {
+			brokenStarts[c] = []brokenFix{bf}
+		}
+	}
+}
+
 type Message struct {
 	key    string
 	folder maildir.Dir
@@ -43,6 +69,60 @@ func NewMessage(folder maildir.Dir, key string) *Message {
 	}
 }
 
+type fixEmailReader struct {
+	bs []byte
+}
+
+func (r *fixEmailReader) Read(p []byte) (n int, err error) {
+	if len(p) >= len(r.bs) {
+		for i, b := range r.bs {
+			p[i] = b
+		}
+		return len(r.bs), nil
+	} else {
+		for i := range p {
+			p[i] = r.bs[i]
+		}
+		r.bs = r.bs[len(p):]
+		return len(p), nil
+	}
+}
+
+func byteEqual(b1 []byte, s, e int, b2 []byte) bool {
+	for i := 0; i < e-s; i++ {
+		if b1[i+s] != b2[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func fixHeadersReader(r io.Reader) (*fixEmailReader, error) {
+	bs, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+
+	os := make([]byte, 0, len(bs))
+
+ByteLoop:
+	for i, b := range bs {
+		bfs, ok := brokenStarts[b]
+		if ok && (i == 0 || bs[i-1] == '\r' || bs[i-1] == '\n') {
+			for _, bf := range bfs {
+				if len(bs)-i < len(bf.broken) && byteEqual(bs, i, i+len(bf.broken), bf.broken) {
+					os = append(os, bf.fix...)
+					continue ByteLoop
+				}
+			}
+		} else {
+			os = append(os, b)
+		}
+	}
+
+	return &fixEmailReader{os}, err
+}
+
 func (m *Message) Message() (*mail.Reader, error) {
 	if m.m != nil {
 		return m.m, nil
@@ -55,9 +135,18 @@ func (m *Message) Message() (*mail.Reader, error) {
 
 	defer r.Close()
 
-	m.e, err = message.Read(r)
+	fr, err := fixHeadersReader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	m.e, err = message.Read(fr)
 	m.m = mail.NewReader(m.e)
-	return m.m, err
+	if err != nil {
+		return m.m, fmt.Errorf("unable to parse email entity for mail %s/*/%s: %w", m.folder, m.key, err)
+	} else {
+		return m.m, nil
+	}
 }
 
 func (m *Message) Raw() ([]byte, error) {

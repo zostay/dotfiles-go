@@ -84,7 +84,7 @@ func RunLabelMail(cmd *cobra.Command, args []string) {
 			fmt.Printf(" %-"+kws+"s : %"+cws+"d\n", key, actions[key])
 		}
 
-		fmt.Printf("%s %s", strings.Repeat("-", kw+2), strings.Repeat("-", cw+2))
+		fmt.Printf("%s %s\n", strings.Repeat("-", kw+2), strings.Repeat("-", cw+2))
 		fmt.Printf(" %-"+kws+"s : %"+cws+"d\n", "Total", total)
 	} else {
 		fmt.Println("Nothing to do.")

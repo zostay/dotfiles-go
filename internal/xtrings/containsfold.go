@@ -7,7 +7,12 @@ import (
 func ContainsFold(s, substr string) bool {
 	fc := rune(substr[0])
 	for i, c := range s {
-		if c == fc && strings.EqualFold(s[i:i+len(substr)], substr) {
+		end := i + len(substr)
+		if end > len(s) {
+			end = len(s)
+		}
+
+		if c == fc && strings.EqualFold(s[i:end], substr) {
 			return true
 		}
 	}
