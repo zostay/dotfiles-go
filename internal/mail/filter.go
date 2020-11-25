@@ -147,12 +147,18 @@ func (fi *Filter) AllFolders() ([]string, error) {
 	return folderNames, nil
 }
 
-func (fi *Filter) LabelMessages() (ActionsSummary, error) {
+func (fi *Filter) LabelMessages(onlyFolders []string) (ActionsSummary, error) {
 	actions := make(ActionsSummary)
 
-	allFolders, err := fi.AllFolders()
-	if err != nil {
-		return actions, err
+	var allFolders []string
+	if onlyFolders == nil {
+		var err error
+		allFolders, err = fi.AllFolders()
+		if err != nil {
+			return actions, err
+		}
+	} else {
+		allFolders = onlyFolders
 	}
 
 	folders := fi.Rules.FolderRules()
@@ -419,15 +425,14 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 		}
 	}
 
-	// DEBUGGING
-	if fi.Debug > 0 {
-		if fail != "" {
-			fmt.Fprintf(os.Stderr, "FAILED: %s.\n", fail)
-		}
+	// MOAR DEBUGGING
+	if fi.Debug > 2 && fail != "" {
+		fmt.Fprintf(os.Stderr, "FAILED: %s.\n", fail)
+	}
 
-		if (len(passes) > 0 && fail == "") || fi.Debug > 1 {
-			fmt.Fprintf(os.Stderr, "PASSES: %s.\n", strings.Join(passes, ", "))
-		}
+	// AND EVEN MOAR DEBUGGING
+	if fi.Debug > 2 || (fi.Debug > 1 && (len(passes) > 0 && fail == "")) {
+		fmt.Fprintf(os.Stderr, "PASSES: %s.\n", strings.Join(passes, ", "))
 	}
 
 	if fail != "" {
@@ -448,6 +453,10 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 			}
 		}
 
+		if fi.Debug > 0 {
+			fmt.Fprintf(os.Stderr, "LABELING %s/*/%s : %s\n", m.folder, m.key, strings.Join(c.Label, ", "))
+		}
+
 		actions = append(actions, "Labeled "+strings.Join(c.Label, ", "))
 	}
 
@@ -457,6 +466,10 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 			if err != nil {
 				return actions, err
 			}
+		}
+
+		if fi.Debug > 0 {
+			fmt.Fprintf(os.Stderr, "CLEARING %s/*/%s : %s\n", m.folder, m.key, strings.Join(c.Clear, ", "))
 		}
 
 		actions = append(actions, "Cleared "+strings.Join(c.Clear, ", "))
@@ -469,6 +482,11 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 				return actions, err
 			}
 		}
+
+		if fi.Debug > 0 {
+			fmt.Fprintf(os.Stderr, "FORWARDING %s/*/%s : %s\n", m.folder, m.key, strings.Join(c.Forward, ", "))
+		}
+
 		actions = append(actions, "Forwarded "+strings.Join(c.Forward, ", "))
 	}
 
@@ -486,6 +504,11 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 				return actions, err
 			}
 		}
+
+		if fi.Debug > 0 {
+			fmt.Fprintf(os.Stderr, "MOVING %s/*/%s : %s\n", m.folder, m.key, c.Move)
+		}
+
 		actions = append(actions, "Moved "+c.Move)
 	}
 

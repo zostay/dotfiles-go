@@ -19,6 +19,7 @@ var (
 	mailDir string
 	dryRun  bool
 	verbose int
+	folders []string
 )
 
 func init() {
@@ -32,6 +33,7 @@ func init() {
 	cmd.PersistentFlags().StringVar(&mailDir, "maildir", mail.DefaultMailDir, "the root directory for mail")
 	cmd.PersistentFlags().BoolVarP(&dryRun, "dry-run", "d", false, "perform a dry run")
 	cmd.PersistentFlags().CountVarP(&verbose, "verbose", "v", "enable debugging verbose mode")
+	cmd.PersistentFlags().StringSliceVarP(&folders, "folder", "f", []string{}, "select folders to filter")
 }
 
 func RunLabelMail(cmd *cobra.Command, args []string) {
@@ -51,7 +53,7 @@ func RunLabelMail(cmd *cobra.Command, args []string) {
 	filter.DryRun = dryRun
 	filter.Debug = verbose
 
-	actions, err := filter.LabelMessages()
+	actions, err := filter.LabelMessages(folders)
 	if err != nil {
 		panic(err)
 	}

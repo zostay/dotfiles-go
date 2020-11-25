@@ -365,10 +365,10 @@ var (
 
 			ok, err := m.HasKeyword(c.Label...)
 			if !ok {
-				return skipResult{false, "missing possible labels"}, err
+				return skipResult{false, fmt.Sprintf("needs labels [%s]", strings.Join(c.Label, ", "))}, err
 			}
 
-			return skipResult{true, "already labeled as such"}, err
+			return skipResult{true, fmt.Sprintf("already labeled [%s]", strings.Join(c.Label, ", "))}, err
 		},
 
 		func(m *Message, c *CompiledRule) (skipResult, error) {
@@ -378,10 +378,10 @@ var (
 
 			ok, err := m.MissingKeyword(c.Clear...)
 			if !ok {
-				return skipResult{false, "labels to clear not set"}, err
+				return skipResult{false, fmt.Sprintf("needs to lose labels [%s]", strings.Join(c.Clear, ", "))}, err
 			}
 
-			return skipResult{true, "not labeled as such"}, err
+			return skipResult{true, fmt.Sprintf("already lost labels [%s]", strings.Join(c.Clear, ", "))}, err
 		},
 
 		func(m *Message, c *CompiledRule) (skipResult, error) {
@@ -391,10 +391,10 @@ var (
 
 			fn, err := m.Folder()
 			if c.Move != fn {
-				return skipResult{false, "in a different folder"}, err
+				return skipResult{false, fmt.Sprintf("not yet in folder [%s]", c.Move)}, err
 			}
 
-			return skipResult{true, "in the same folder"}, err
+			return skipResult{true, fmt.Sprintf("already in folder [%s]", c.Move)}, err
 		},
 
 		func(m *Message, c *CompiledRule) (skipResult, error) {
@@ -417,10 +417,10 @@ var (
 
 			date, err := m.Date()
 			if date.After(c.OkayDate) {
-				return testResult{true, "message is more recent than okay date"}, err
+				return testResult{true, fmt.Sprintf("message is more recent than okay date [%s]", c.OkayDate.Format(time.RFC3339))}, err
 			}
 
-			return testResult{false, "message is older than okay date"}, err
+			return testResult{false, fmt.Sprintf("message is older than okay date [%s]", c.OkayDate.Format(time.RFC3339))}, err
 		},
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
@@ -487,10 +487,10 @@ var (
 
 			subject, err := m.Subject()
 			if c.Subject != subject {
-				return testResult{false, "message Subject does not exactly match subject test"}, err
+				return testResult{false, fmt.Sprintf("message header [Subject] does not exactly match subject test: [%s]", c.Subject)}, err
 			}
 
-			return testResult{true, "message Subject exactly matches subject test"}, err
+			return testResult{true, fmt.Sprintf("message header [Subject] exactly matches subject test: [%s]", c.Subject)}, err
 		},
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
@@ -502,10 +502,10 @@ var (
 
 			subject, err := m.Subject()
 			if !strings.EqualFold(c.SubjectFold, subject) {
-				return testResult{false, "message Subject does not match folded case of subject test"}, err
+				return testResult{false, fmt.Sprintf("message header [Subject] does not match folded case of subject test: [%s]", c.SubjectFold)}, err
 			}
 
-			return testResult{true, "message Subject matches folded case of subject test"}, err
+			return testResult{true, fmt.Sprintf("message header [Subject] matches folded case of subject test: [%s]", c.SubjectFold)}, err
 		},
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
@@ -517,10 +517,10 @@ var (
 
 			subject, err := m.Subject()
 			if !strings.Contains(subject, c.SubjectContains) {
-				return testResult{false, "message Subject fails contains subject test"}, err
+				return testResult{false, fmt.Sprintf("message header [Subject] fails contains subject test: [%s]", c.SubjectContains)}, err
 			}
 
-			return testResult{true, "message Subject passes contains subject test"}, err
+			return testResult{true, fmt.Sprintf("message header [Subject] passes contains subject test: [%s]", c.SubjectContains)}, err
 		},
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
@@ -532,10 +532,10 @@ var (
 
 			subject, err := m.Subject()
 			if !xtrings.ContainsFold(subject, c.SubjectContainsFold) {
-				return testResult{false, "message Subject fails contains subject folded case test"}, err
+				return testResult{false, fmt.Sprintf("message header [Subject] fails contains subject folded case test: [%s]", c.SubjectContainsFold)}, err
 			}
 
-			return testResult{true, "message Subject passes cotnains subject folded case test"}, err
+			return testResult{true, fmt.Sprintf("message header [Subject] passes cotnains subject folded case test: [%s]", c.SubjectContainsFold)}, err
 		},
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
@@ -547,10 +547,10 @@ var (
 
 			bs, err := m.Raw()
 			if !strings.Contains(string(bs), c.Contains) {
-				return testResult{false, "message fails contains anywhere test"}, err
+				return testResult{false, fmt.Sprintf("message fails contains anywhere test: [%s]", c.Contains)}, err
 			}
 
-			return testResult{true, "message passes contains anywhere test"}, err
+			return testResult{true, fmt.Sprintf("message passes contains anywhere test: [%s]", c.Contains)}, err
 		},
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
@@ -562,42 +562,42 @@ var (
 
 			bs, err := m.Raw()
 			if !xtrings.ContainsFold(string(bs), c.ContainsFold) {
-				return testResult{false, "message fails contains anywhere folded case test"}, err
+				return testResult{false, fmt.Sprintf("message fails contains anywhere folded case test: [%s]", c.ContainsFold)}, err
 			}
 
-			return testResult{true, "message passes contains anywhere folded case test"}, err
+			return testResult{true, fmt.Sprintf("message passes contains anywhere folded case test: [%s]", c.ContainsFold)}, err
 		},
 	}
 )
 
 func testAddress(dbgh, dbgt, expect string, got []*mail.Address, err error) (testResult, error) {
 	if len(got) == 0 {
-		return testResult{false, fmt.Sprintf("message has no %s header", dbgh)}, err
+		return testResult{false, fmt.Sprintf("message is missing [%s] header", dbgh)}, err
 	}
 
 	for _, addr := range got {
 		if strings.EqualFold(addr.Address, expect) {
-			return testResult{true, fmt.Sprintf("message %s header matches %s test", dbgh, dbgt)}, err
+			return testResult{true, fmt.Sprintf("message header [%s] matches [%s] test: [%s]", dbgh, dbgt, expect)}, err
 		}
 	}
 
-	return testResult{false, fmt.Sprintf("message %s header does not match %s test", dbgh, dbgt)}, err
+	return testResult{false, fmt.Sprintf("message header [%s] does not match [%s] test: [%s]", dbgh, dbgt, expect)}, err
 }
 
 func testDomain(dbgh, dbgt, expect string, got []*mail.Address, err error) (testResult, error) {
 	if len(got) == 0 {
-		return testResult{false, fmt.Sprintf("message has no %s header", dbgh)}, err
+		return testResult{false, fmt.Sprintf("message is missing [%s] header", dbgh)}, err
 	}
 
 	for _, addr := range got {
 		idx := strings.IndexRune(addr.Address, '@')
 		d := addr.Address[idx:]
 		if strings.EqualFold(d, expect) {
-			return testResult{true, fmt.Sprintf("message %s header matches %s domain test", dbgh, dbgt)}, err
+			return testResult{true, fmt.Sprintf("message header [%s] matches [%s] domain test: [%s]", dbgh, dbgt, expect)}, err
 		}
 	}
 
-	return testResult{false, fmt.Sprintf("message %s header does not match %s domain test", dbgh, dbgt)}, err
+	return testResult{false, fmt.Sprintf("message header [%s] does not match [%s] domain test: [%s]", dbgh, dbgt, expect)}, err
 }
 
 func (m *Message) ForwardTo(tos ...string) error {
