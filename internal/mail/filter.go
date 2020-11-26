@@ -48,6 +48,8 @@ type Filter struct {
 
 	Debug  int
 	DryRun bool
+
+	AllowSendingEmail bool
 }
 
 func NewFilter(root string) (*Filter, error) {
@@ -476,7 +478,7 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 	}
 
 	if c.IsForwarding() {
-		if !fi.DryRun {
+		if !fi.DryRun && fi.AllowSendingEmail {
 			err := m.ForwardTo(c.Forward...)
 			if err != nil {
 				return actions, err
@@ -487,7 +489,11 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 			fmt.Fprintf(os.Stderr, "FORWARDING %s/*/%s : %s\n", m.folder, m.key, strings.Join(c.Forward, ", "))
 		}
 
-		actions = append(actions, "Forwarded "+strings.Join(c.Forward, ", "))
+		if fi.AllowSendingEmail {
+			actions = append(actions, "Forwarded "+strings.Join(c.Forward, ", "))
+		} else {
+			actions = append(actions, "NOT Forwarded "+strings.Join(c.Forward, ", "))
+		}
 	}
 
 	if len(actions) > 0 && !fi.DryRun {

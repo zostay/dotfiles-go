@@ -14,12 +14,13 @@ import (
 )
 
 var (
-	cmd     *cobra.Command
-	allMail bool
-	mailDir string
-	dryRun  bool
-	verbose int
-	folders []string
+	cmd          *cobra.Command
+	allMail      bool
+	mailDir      string
+	dryRun       bool
+	verbose      int
+	folders      []string
+	allowSending bool
 )
 
 func init() {
@@ -34,6 +35,7 @@ func init() {
 	cmd.PersistentFlags().BoolVarP(&dryRun, "dry-run", "d", false, "perform a dry run")
 	cmd.PersistentFlags().CountVarP(&verbose, "verbose", "v", "enable debugging verbose mode")
 	cmd.PersistentFlags().StringSliceVarP(&folders, "folder", "f", []string{}, "select folders to filter")
+	cmd.PersistentFlags().BoolVarP(&allowSending, "allow-forwarding", "e", false, "allow email forwarding rules to run")
 }
 
 func RunLabelMail(cmd *cobra.Command, args []string) {
