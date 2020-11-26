@@ -402,11 +402,11 @@ var (
 			(*tests)++
 
 			date, err := m.Date()
-			if date.After(c.OkayDate) {
-				return testResult{true, fmt.Sprintf("message is more recent than okay date [%s]", c.OkayDate.Format(time.RFC3339))}, err
+			if date.Before(c.OkayDate) {
+				return testResult{true, fmt.Sprintf("message is older than okay date [%s]", c.OkayDate.Format(time.RFC3339))}, err
 			}
 
-			return testResult{false, fmt.Sprintf("message is older than okay date [%s]", c.OkayDate.Format(time.RFC3339))}, err
+			return testResult{false, fmt.Sprintf("message is newer than okay date [%s]", c.OkayDate.Format(time.RFC3339))}, err
 		},
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
