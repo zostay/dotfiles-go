@@ -1,6 +1,7 @@
 package mail
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -69,25 +70,6 @@ func NewMessage(folder maildir.Dir, key string) *Message {
 	}
 }
 
-type fixEmailReader struct {
-	bs []byte
-}
-
-func (r *fixEmailReader) Read(p []byte) (n int, err error) {
-	if len(p) >= len(r.bs) {
-		for i, b := range r.bs {
-			p[i] = b
-		}
-		return len(r.bs), nil
-	} else {
-		for i := range p {
-			p[i] = r.bs[i]
-		}
-		r.bs = r.bs[len(p):]
-		return len(p), nil
-	}
-}
-
 func byteEqual(b1 []byte, s, e int, b2 []byte) bool {
 	for i := 0; i < e-s; i++ {
 		if b1[i+s] != b2[i] {
@@ -97,7 +79,7 @@ func byteEqual(b1 []byte, s, e int, b2 []byte) bool {
 	return true
 }
 
-func fixHeadersReader(r io.Reader) (*fixEmailReader, error) {
+func fixHeadersReader(r io.Reader) (*bytes.Reader, error) {
 	bs, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
@@ -120,7 +102,7 @@ ByteLoop:
 		}
 	}
 
-	return &fixEmailReader{os}, err
+	return bytes.NewReader(os), err
 }
 
 func (m *Message) Message() (*mail.Reader, error) {
@@ -327,7 +309,11 @@ func (m *Message) AddressList(key string) ([]*mail.Address, error) {
 	}
 
 	addr, err = msg.Header.AddressList(key)
-	return addr, err
+	if err != nil {
+		return addr, fmt.Errorf("unable to read address list of header %s: %w", key, err)
+	}
+
+	return addr, nil
 }
 
 func (m *Message) Subject() (string, error) {
