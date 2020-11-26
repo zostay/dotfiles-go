@@ -89,8 +89,8 @@ func (fi *Filter) Messages(folder string) ([]*Message, error) {
 		since = fi.LimitSince()
 	}
 
-	ms = make([]*Message, len(ks))
-	for i, k := range ks {
+	ms = make([]*Message, 0, len(ks))
+	for _, k := range ks {
 		if fi.LimitRecent > 0 {
 			fn, err := f.Filename(k)
 			if err != nil {
@@ -107,7 +107,7 @@ func (fi *Filter) Messages(folder string) ([]*Message, error) {
 			}
 		}
 
-		ms[i] = NewMessage(f, k)
+		ms = append(ms, NewMessage(f, k))
 	}
 
 	return ms, nil
@@ -150,15 +150,15 @@ func (fi *Filter) AllFolders() ([]string, error) {
 func (fi *Filter) LabelMessages(onlyFolders []string) (ActionsSummary, error) {
 	actions := make(ActionsSummary)
 
-	var allFolders []string
-	if onlyFolders == nil {
+	var whichFolders []string
+	if onlyFolders == nil || len(onlyFolders) == 0 {
 		var err error
-		allFolders, err = fi.AllFolders()
+		whichFolders, err = fi.AllFolders()
 		if err != nil {
 			return actions, err
 		}
 	} else {
-		allFolders = onlyFolders
+		whichFolders = onlyFolders
 	}
 
 	folders := fi.Rules.FolderRules()
@@ -171,7 +171,7 @@ func (fi *Filter) LabelMessages(onlyFolders []string) (ActionsSummary, error) {
 		gr = CompiledRules{}
 	}
 
-	for _, f := range allFolders {
+	for _, f := range whichFolders {
 		var (
 			fr CompiledRules
 			ok bool
