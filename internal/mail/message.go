@@ -666,8 +666,13 @@ func (m *Message) Save() error {
 		return err
 	}
 
+	flags, err := m.folder.Flags(m.key)
+	if err != nil {
+		return err
+	}
+
 	m.e.Header = msg.Header.Header
-	key, w, err := m.folder.Create([]maildir.Flag{})
+	key, w, err := m.folder.Create(flags)
 	if err != nil {
 		return err
 	}
