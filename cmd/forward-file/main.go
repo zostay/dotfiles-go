@@ -14,7 +14,7 @@ var (
 
 func init() {
 	cmd = &cobra.Command{
-		Use:   "forward",
+		Use:   "forward-file",
 		Short: "Forward a message file",
 		Run:   RunForward,
 	}
