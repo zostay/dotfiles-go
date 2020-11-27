@@ -1,68 +1,43 @@
 package main
 
 import (
-	email "github.com/emersion/go-message/mail"
+	"github.com/spf13/cobra"
 
 	"github.com/zostay/dotfiles-go/internal/mail"
 )
 
-func main() {
-	// r, err := os.Open("Test/INBOX/cur/1602005307_1.12.f3d93a06c131,U=101733,FMD5=7e33429f656f1e6e9d79b29c3f82c57e:2,S")
-	// if err != nil {
-	// 	panic(err)
-	// }
+var (
+	cmd *cobra.Command
+	to  string
+	msg string
+)
 
-	// e, err := message.Read(r)
-	// if err != nil {
-	// 	panic(err)
-	// }
+func init() {
+	cmd = &cobra.Command{
+		Use:   "forward",
+		Short: "Forward a message file",
+		Run:   RunForward,
+	}
 
-	// mr := email.NewReader(e)
-	// mr, err := email.CreateReader(r)
-	// if err != nil {
-	// 	panic(err)
-	// }
+	cmd.PersistentFlags().StringVarP(&to, "to", "t", "", "email address to receive the forward")
+	cmd.PersistentFlags().StringVarP(&msg, "file", "f", "", "the file name of the message to forward")
+}
 
-	// for {
-	// 	pr, err := mr.NextPart()
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
+func RunForward(cmd *cobra.Command, args []string) {
+	m := mail.NewFileMessage(msg)
 
-	// 	switch ph := pr.Header.(type) {
-	// 	case *email.InlineHeader:
-	// 		fmt.Println(strings.Repeat("INLINE ", 10))
-	// 		io.Copy(os.Stdout, pr.Body)
-	// 		fmt.Println(strings.Repeat("END ", 20))
-	// 	case *email.AttachmentHeader:
-	// 		fn, err := ph.Filename()
-	// 		if err != nil {
-	// 			panic(err)
-	// 		}
-	// 		fmt.Println("ATTACHMENT: " + fn)
-	// 	}
-	// }
-
-	m := mail.NewMessage(
-		"Test/INBOX",
-		"1602005307_1.12.f3d93a06c131,U=101733,FMD5=7e33429f656f1e6e9d79b29c3f82c57e",
-	)
-
-	addr := make([]*email.Address, 1)
-	addr[0] = &email.Address{Name: "ASH", Address: "sterling@hanenkamp.com"}
+	addr := make(mail.AddressList, 1)
+	addr[0] = &mail.Address{Address: to}
 
 	err := m.ForwardTo(addr...)
 	if err != nil {
 		panic(err)
 	}
+}
 
-	// r, err := m.ForwardReader(addr)
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// _, err = io.Copy(os.Stdout, r)
-	// if err != nil {
-	// 	panic(err)
-	// }
+func main() {
+	err := cmd.Execute()
+	if err != nil {
+		panic(err)
+	}
 }

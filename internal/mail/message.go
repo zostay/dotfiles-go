@@ -73,16 +73,22 @@ func init() {
 }
 
 type Message struct {
-	key    string
-	folder maildir.Dir
-	h      *mail.Header
+	r Opener
+	h *mail.Header
 }
 
-func NewMessage(folder maildir.Dir, key string) *Message {
-	return &Message{
-		key:    key,
-		folder: folder,
-	}
+func NewMessage(r Opener) *Message {
+	return &Message{r: r}
+}
+
+func NewMailDirMessage(folder maildir.Dir, key string) *Message {
+	r := NewMailDirOpener(folder, key)
+	return NewMessage(r)
+}
+
+func NewFileMessage(filename string) *Message {
+	r := NewMessageOpener(filename)
+	return NewMessage(r)
 }
 
 func byteEqual(b1 []byte, s, e int, b2 []byte) bool {
@@ -122,7 +128,7 @@ ByteLoop:
 }
 
 func (m *Message) EmailEntity() (*message.Entity, error) {
-	r, err := m.folder.Open(m.key)
+	r, err := m.r.Open()
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +142,8 @@ func (m *Message) EmailEntity() (*message.Entity, error) {
 
 	e, err := message.Read(fr)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse email entity for mail %s/*/%s: %w", m.folder, m.key, err)
+		f, _ := m.r.Filename()
+		return nil, fmt.Errorf("unable to parse email entity for mail %s: %w", f, err)
 	} else {
 		return e, nil
 	}
@@ -167,7 +174,7 @@ func (m *Message) EmailHeader() (*mail.Header, error) {
 }
 
 func (m *Message) Raw() ([]byte, error) {
-	r, err := m.folder.Open(m.key)
+	r, err := m.r.Open()
 	if err != nil {
 		return []byte{}, err
 	}
@@ -178,7 +185,7 @@ func (m *Message) Raw() ([]byte, error) {
 }
 
 func (m *Message) Reader() (io.ReadCloser, error) {
-	return m.folder.Open(m.key)
+	return m.r.Open()
 }
 
 func (m *Message) ForwardReader(to AddressList) (*bytes.Buffer, error) {
@@ -495,7 +502,7 @@ func (m *Message) Subject() (string, error) {
 }
 
 func (m *Message) Folder() (string, error) {
-	return path.Base(string(m.folder)), nil
+	return m.r.Folder(), nil
 }
 
 type skipTest func(*Message, *CompiledRule) (skipResult, error)
@@ -819,12 +826,10 @@ func (m *Message) MoveTo(root string, name string) error {
 	}
 
 	destFolder := maildir.Dir(dest)
-	err := m.folder.Move(destFolder, m.key)
+	err := m.r.(*MailDirOpener).MoveTo(destFolder)
 	if err != nil {
 		return err
 	}
-
-	m.folder = destFolder
 
 	return nil
 }
@@ -835,29 +840,18 @@ func (m *Message) Save() error {
 		return err
 	}
 
-	flags, err := m.folder.Flags(m.key)
-	if err != nil {
-		return err
-	}
-
 	e, err := m.EmailEntity()
 	if err != nil {
 		return err
 	}
 
-	e.Header = h.Header
-	key, w, err := m.folder.Create(flags)
+	w, err := m.r.(*MailDirOpener).Replace()
 	if err != nil {
 		return err
 	}
 
-	err = m.folder.Remove(m.key)
-	if err != nil {
-		return err
-	}
-
-	m.key = key
 	//fmt.Println("START WRITING")
+	e.Header = h.Header
 	err = e.WriteTo(w)
 	//fmt.Println("END WRITING")
 	if err != nil {

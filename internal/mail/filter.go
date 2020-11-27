@@ -109,7 +109,7 @@ func (fi *Filter) Messages(folder string) ([]*Message, error) {
 			}
 		}
 
-		ms = append(ms, NewMessage(f, k))
+		ms = append(ms, NewMailDirMessage(f, k))
 	}
 
 	return ms, nil
@@ -117,7 +117,7 @@ func (fi *Filter) Messages(folder string) ([]*Message, error) {
 
 func (fi *Filter) Message(folder string, key string) *Message {
 	f := fi.folder(folder)
-	return NewMessage(f, key)
+	return NewMailDirMessage(f, key)
 }
 
 type ActionsSummary map[string]int
@@ -206,7 +206,7 @@ func (fi *Filter) LabelFolderMessages(
 	}
 
 	for _, msg := range msgs {
-		if _, skip := SkipFolder[string(msg.folder)]; skip {
+		if _, skip := SkipFolder[msg.r.Folder()]; skip {
 			continue
 		}
 
@@ -456,7 +456,8 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 		}
 
 		if fi.Debug > 0 {
-			fmt.Fprintf(os.Stderr, "LABELING %s/*/%s : %s\n", m.folder, m.key, strings.Join(c.Label, ", "))
+			f, _ := m.r.Filename()
+			fmt.Fprintf(os.Stderr, "LABELING %s : %s\n", f, strings.Join(c.Label, ", "))
 		}
 
 		actions = append(actions, "Labeled "+strings.Join(c.Label, ", "))
@@ -471,7 +472,8 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 		}
 
 		if fi.Debug > 0 {
-			fmt.Fprintf(os.Stderr, "CLEARING %s/*/%s : %s\n", m.folder, m.key, strings.Join(c.Clear, ", "))
+			f, _ := m.r.Filename()
+			fmt.Fprintf(os.Stderr, "CLEARING %s : %s\n", f, strings.Join(c.Clear, ", "))
 		}
 
 		actions = append(actions, "Cleared "+strings.Join(c.Clear, ", "))
@@ -486,7 +488,8 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 		}
 
 		if fi.Debug > 0 {
-			fmt.Fprintf(os.Stderr, "FORWARDING %s/*/%s : %s\n", m.folder, m.key, strings.Join(AddressListStrings(c.Forward), ", "))
+			f, _ := m.r.Filename()
+			fmt.Fprintf(os.Stderr, "FORWARDING %s : %s\n", f, strings.Join(AddressListStrings(c.Forward), ", "))
 		}
 
 		if fi.AllowSendingEmail {
@@ -512,7 +515,8 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 		}
 
 		if fi.Debug > 0 {
-			fmt.Fprintf(os.Stderr, "MOVING %s/*/%s : %s\n", m.folder, m.key, c.Move)
+			f, _ := m.r.Filename()
+			fmt.Fprintf(os.Stderr, "MOVING %s : %s\n", f, c.Move)
 		}
 
 		actions = append(actions, "Moved "+c.Move)
