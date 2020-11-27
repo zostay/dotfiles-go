@@ -40,7 +40,7 @@ type CompiledRule struct {
 	Clear   []string
 	Label   []string
 	Move    string
-	Forward []string
+	Forward AddressList
 }
 
 func (c *CompiledRule) IsClearing() bool   { return len(c.Clear) != 0 }
@@ -148,7 +148,7 @@ func LoadRules() (CompiledRules, error) {
 			compiledMove = strings.Replace(compiledMove, "/", ".", -1)
 		}
 
-		compiledForward := CompileField("forward", r.Forward)
+		compiledForward := CompileAddress("forward", r.Forward)
 
 		if len(compiledLabel) == 0 && len(compiledClear) == 0 && compiledMove == "" && len(compiledForward) == 0 {
 			pretty.Printf("RULE MISSING ACTION %# v\n", r)
@@ -195,6 +195,15 @@ func CompileField(name string, field interface{}) []string {
 	}
 
 	return r1
+}
+
+func CompileAddress(name string, addr interface{}) AddressList {
+	r1 := CompileField(name, addr)
+	r2 := make(AddressList, len(r1))
+	for i, a := range r1 {
+		r2[i] = &Address{Address: a}
+	}
+	return r2
 }
 
 func CompileLabel(name string, label interface{}) []string {

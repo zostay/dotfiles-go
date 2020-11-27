@@ -153,7 +153,7 @@ func (fi *Filter) LabelMessages(onlyFolders []string) (ActionsSummary, error) {
 	actions := make(ActionsSummary)
 
 	var whichFolders []string
-	if onlyFolders == nil || len(onlyFolders) == 0 {
+	if len(onlyFolders) == 0 {
 		var err error
 		whichFolders, err = fi.AllFolders()
 		if err != nil {
@@ -486,13 +486,13 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 		}
 
 		if fi.Debug > 0 {
-			fmt.Fprintf(os.Stderr, "FORWARDING %s/*/%s : %s\n", m.folder, m.key, strings.Join(c.Forward, ", "))
+			fmt.Fprintf(os.Stderr, "FORWARDING %s/*/%s : %s\n", m.folder, m.key, strings.Join(AddressListStrings(c.Forward), ", "))
 		}
 
 		if fi.AllowSendingEmail {
-			actions = append(actions, "Forwarded "+strings.Join(c.Forward, ", "))
+			actions = append(actions, "Forwarded "+strings.Join(AddressListStrings(c.Forward), ", "))
 		} else {
-			actions = append(actions, "NOT Forwarded "+strings.Join(c.Forward, ", "))
+			actions = append(actions, "NOT Forwarded "+strings.Join(AddressListStrings(c.Forward), ", "))
 		}
 	}
 

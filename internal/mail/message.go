@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"io/ioutil"
 	"os"
@@ -24,10 +25,17 @@ import (
 	"github.com/zostay/dotfiles-go/internal/xtrings"
 )
 
+const (
+	FromName = "Andrew Sterling Hanenkamp"
+
+	ForwardedMessagePrefix = "---------- Forwarded message ---------"
+)
+
 var (
 	FromEmail = dotfiles.MustGetSecret("GIT_EMAIL_HOME")
-	SASLUser  = dotfiles.MustGetSecret("LABEL_MAIL_USERNAME")
-	SASLPass  = dotfiles.MustGetSecret("LABEL_MAIL_PASSWORD")
+
+	SASLUser = dotfiles.MustGetSecret("LABEL_MAIL_USERNAME")
+	SASLPass = dotfiles.MustGetSecret("LABEL_MAIL_PASSWORD")
 )
 
 var (
@@ -37,6 +45,8 @@ var (
 		{[]byte("Content-Transfer-Encoding: 8-bit"),
 			[]byte("Content-Transfer-Encoding: 8bit")},
 	}
+
+	FromEmailAddress AddressList
 )
 
 type brokenFix struct {
@@ -54,13 +64,18 @@ func init() {
 			brokenStarts[c] = []brokenFix{bf}
 		}
 	}
+
+	FromEmailAddress = make(AddressList, 1)
+	FromEmailAddress[0] = &Address{
+		Name:    FromName,
+		Address: FromEmail,
+	}
 }
 
 type Message struct {
 	key    string
 	folder maildir.Dir
-	e      *message.Entity
-	m      *mail.Reader
+	h      *mail.Header
 }
 
 func NewMessage(folder maildir.Dir, key string) *Message {
@@ -79,13 +94,13 @@ func byteEqual(b1 []byte, s, e int, b2 []byte) bool {
 	return true
 }
 
-func fixHeadersReader(r io.Reader) (*bytes.Reader, error) {
+func fixHeadersReader(r io.Reader) (io.Reader, error) {
 	bs, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
 
-	os := make([]byte, 0, len(bs))
+	var os bytes.Buffer
 
 ByteLoop:
 	for i, b := range bs {
@@ -93,23 +108,20 @@ ByteLoop:
 		if ok && (i == 0 || bs[i-1] == '\r' || bs[i-1] == '\n') {
 			for _, bf := range bfs {
 				if len(bs)-i < len(bf.broken) && byteEqual(bs, i, i+len(bf.broken), bf.broken) {
-					os = append(os, bf.fix...)
+					os.Write(bf.fix)
 					continue ByteLoop
 				}
 			}
+			os.WriteByte(b)
 		} else {
-			os = append(os, b)
+			os.WriteByte(b)
 		}
 	}
 
-	return bytes.NewReader(os), err
+	return &os, err
 }
 
-func (m *Message) Message() (*mail.Reader, error) {
-	if m.m != nil {
-		return m.m, nil
-	}
-
+func (m *Message) EmailEntity() (*message.Entity, error) {
 	r, err := m.folder.Open(m.key)
 	if err != nil {
 		return nil, err
@@ -122,12 +134,35 @@ func (m *Message) Message() (*mail.Reader, error) {
 		return nil, err
 	}
 
-	m.e, err = message.Read(fr)
-	m.m = mail.NewReader(m.e)
+	e, err := message.Read(fr)
 	if err != nil {
-		return m.m, fmt.Errorf("unable to parse email entity for mail %s/*/%s: %w", m.folder, m.key, err)
+		return nil, fmt.Errorf("unable to parse email entity for mail %s/*/%s: %w", m.folder, m.key, err)
 	} else {
-		return m.m, nil
+		return e, nil
+	}
+}
+
+func (m *Message) EmailReader() (*mail.Reader, error) {
+	e, err := m.EmailEntity()
+	if err != nil {
+		return nil, err
+	} else {
+		m := mail.NewReader(e)
+		return m, nil
+	}
+}
+
+func (m *Message) EmailHeader() (*mail.Header, error) {
+	if m.h != nil {
+		return m.h, nil
+	}
+
+	msg, err := m.EmailReader()
+	if err != nil {
+		return nil, err
+	} else {
+		m.h = &msg.Header
+		return &msg.Header, nil
 	}
 }
 
@@ -146,22 +181,151 @@ func (m *Message) Reader() (io.ReadCloser, error) {
 	return m.folder.Open(m.key)
 }
 
+func (m *Message) ForwardReader(to AddressList) (*bytes.Buffer, error) {
+	r, err := m.EmailReader()
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		h   mail.Header
+		buf bytes.Buffer
+	)
+
+	h.SetDate(time.Now())
+	h.SetAddressList("To", to)
+	h.SetAddressList("From", FromEmailAddress)
+	h.SetAddressList("X-Forwarded-To", to)
+	h.SetAddressList("X-Forwarded-For", FromEmailAddress)
+
+	fwdSubject, err := r.Header.Subject()
+	if err != nil {
+		return nil, err
+	}
+
+	h.SetSubject("Fwd: " + fwdSubject)
+
+	fwdFromList, err := h.AddressList("From")
+	if err != nil {
+		return nil, err
+	}
+
+	fwdToList, err := h.AddressList("To")
+	if err != nil {
+		return nil, err
+	}
+
+	fwdCcList, err := h.AddressList("Cc")
+	if err != nil {
+		return nil, err
+	}
+
+	fwdDate, err := h.Date()
+	if err != nil {
+		return nil, err
+	}
+
+	w, err := mail.CreateWriter(&buf, h)
+	if err != nil {
+		return nil, err
+	}
+
+	ip, err := w.CreateInline()
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		pr, err := r.NextPart()
+		if err == io.EOF {
+			break
+		}
+
+		switch ph := pr.Header.(type) {
+		case *mail.InlineHeader:
+			ct, ps, err := ph.ContentType()
+			if err != nil {
+				return nil, err
+			}
+
+			pfh := mail.InlineHeader{}
+			pfh.SetContentType(ct, ps)
+
+			pw, err := ip.CreatePart(pfh)
+			if err != nil {
+				return nil, err
+			}
+
+			if ct == "text/plain" {
+				_, _ = io.WriteString(pw, ForwardedMessagePrefix)
+				_, _ = io.WriteString(pw, "\nFrom: "+AddressListString(fwdFromList))
+				_, _ = io.WriteString(pw, "\nDate: "+fwdDate.Format(time.RFC1123))
+				_, _ = io.WriteString(pw, "\nSubject: "+fwdSubject)
+				_, _ = io.WriteString(pw, "\nTo: "+AddressListString(fwdToList))
+				if len(fwdCcList) > 0 {
+					_, _ = io.WriteString(pw, "\nCc: "+AddressListString(fwdCcList))
+				}
+				_, _ = io.WriteString(pw, "\n\n")
+			} else if ct == "text/html" {
+				_, _ = io.WriteString(pw, "<div><br></div><div><br><div>")
+				_, _ = io.WriteString(pw, ForwardedMessagePrefix)
+				_, _ = io.WriteString(pw, "<br>From: "+AddressListHTML(fwdFromList))
+				_, _ = io.WriteString(pw, "<br>Date: "+fwdDate.Format(time.RFC1123))
+				_, _ = io.WriteString(pw, "<br>Subject: "+html.EscapeString(fwdSubject))
+				_, _ = io.WriteString(pw, "<br>To: "+AddressListHTML(fwdToList))
+				if len(fwdCcList) > 0 {
+					_, _ = io.WriteString(pw, "<br>Cc: "+AddressListHTML(fwdCcList))
+				}
+				_, _ = io.WriteString(pw, "<br></div><br><br>")
+			}
+
+			_, _ = io.Copy(pw, pr.Body)
+			pw.Close()
+
+		case *mail.AttachmentHeader:
+			ct, ps, err := ph.ContentType()
+			if err != nil {
+				return nil, err
+			}
+
+			pfh := mail.AttachmentHeader{}
+			pfh.SetContentType(ct, ps)
+
+			pw, err := w.CreateAttachment(pfh)
+			if err != nil {
+				return nil, err
+			}
+
+			_, _ = io.Copy(pw, pr.Body)
+			pw.Close()
+		}
+	}
+
+	if ip != nil {
+		ip.Close()
+	}
+
+	w.Close()
+
+	return &buf, nil
+}
+
 func (m *Message) Date() (time.Time, error) {
-	msg, err := m.Message()
+	h, err := m.EmailHeader()
 	if err != nil {
 		return time.Time{}, err
 	}
 
-	return msg.Header.Date()
+	return h.Date()
 }
 
 func (m *Message) Keywords() ([]string, error) {
-	msg, err := m.Message()
+	h, err := m.EmailHeader()
 	if err != nil {
 		return []string{}, err
 	}
 
-	sk := msg.Header.Get("Keywords")
+	sk := h.Get("Keywords")
 	ks := strings.FieldsFunc(sk, func(c rune) bool {
 		return unicode.IsSpace(c) || c == ','
 	})
@@ -186,12 +350,12 @@ func (m *Message) KeywordsSet() (km map[string]struct{}, err error) {
 }
 
 func (m *Message) HasNonconformingKeywords() (bool, error) {
-	msg, err := m.Message()
+	h, err := m.EmailHeader()
 	if err != nil {
 		return false, err
 	}
 
-	sk := msg.Header.Get("Keywords")
+	sk := h.Get("Keywords")
 	where := strings.IndexFunc(sk, func(c rune) bool {
 		return unicode.IsLetter(c) || unicode.IsNumber(c) || c == '_' || c == '-' || c == '.' || c == '/'
 	})
@@ -235,7 +399,12 @@ func (m *Message) CleanupKeywords() error {
 		return err
 	}
 
-	m.m.Header.Set("Keywords", strings.Join(ks, " "))
+	h, err := m.EmailHeader()
+	if err != nil {
+		return err
+	}
+
+	h.Set("Keywords", strings.Join(ks, " "))
 
 	return nil
 }
@@ -262,7 +431,7 @@ func (m *Message) AddKeyword(names ...string) error {
 }
 
 func (m *Message) updateKeywords(km map[string]struct{}) error {
-	msg, err := m.Message()
+	h, err := m.EmailHeader()
 	if err != nil {
 		return err
 	}
@@ -274,7 +443,7 @@ func (m *Message) updateKeywords(km map[string]struct{}) error {
 
 	sort.Strings(ks)
 
-	msg.Header.Set("Keywords", strings.Join(ks, ", "))
+	h.Set("Keywords", strings.Join(ks, ", "))
 
 	return nil
 }
@@ -300,15 +469,15 @@ func (m *Message) RemoveKeyword(names ...string) error {
 	return m.updateKeywords(km)
 }
 
-func (m *Message) AddressList(key string) ([]*mail.Address, error) {
+func (m *Message) AddressList(key string) (AddressList, error) {
 	var addr []*mail.Address
 
-	msg, err := m.Message()
+	h, err := m.EmailHeader()
 	if err != nil {
 		return addr, err
 	}
 
-	addr, err = msg.Header.AddressList(key)
+	addr, err = h.AddressList(key)
 	if err != nil {
 		return addr, fmt.Errorf("unable to read address list of header %s: %w", key, err)
 	}
@@ -317,12 +486,12 @@ func (m *Message) AddressList(key string) ([]*mail.Address, error) {
 }
 
 func (m *Message) Subject() (string, error) {
-	msg, err := m.Message()
+	h, err := m.EmailHeader()
 	if err != nil {
 		return "", err
 	}
 
-	return msg.Header.Subject()
+	return h.Subject()
 }
 
 func (m *Message) Folder() (string, error) {
@@ -586,15 +755,15 @@ func testDomain(dbgh, dbgt, expect string, got []*mail.Address, err error) (test
 	return testResult{false, fmt.Sprintf("message header [%s] does not match [%s] domain test: [%s]", dbgh, dbgt, expect)}, err
 }
 
-func (m *Message) ForwardTo(tos ...string) error {
+func (m *Message) ForwardTo(tos ...*Address) error {
 	auth := sasl.NewPlainClient("", SASLUser, SASLPass)
 
-	msg, err := m.Message()
+	h, err := m.EmailHeader()
 	if err != nil {
 		return err
 	}
 
-	zfw := msg.Header.Get("X-Zostay-Forwarded")
+	zfw := h.Get("X-Zostay-Forwarded")
 	zfwm := make(map[string]struct{})
 	zfws := make([]string, 0, len(tos))
 	if zfw != "" {
@@ -608,13 +777,13 @@ func (m *Message) ForwardTo(tos ...string) error {
 
 	finalTos := make([]string, 0, len(tos))
 	for _, to := range tos {
-		if _, ok := zfwm[to]; !ok {
-			finalTos = append(finalTos, to)
-			zfws = append(zfws, to)
+		if _, ok := zfwm[to.Address]; !ok {
+			finalTos = append(finalTos, to.Address)
+			zfws = append(zfws, to.Address)
 		}
 	}
 
-	r, err := m.Reader()
+	r, err := m.ForwardReader(tos)
 	if err != nil {
 		return err
 	}
@@ -632,7 +801,7 @@ func (m *Message) ForwardTo(tos ...string) error {
 
 	sort.Strings(zfws)
 
-	msg.Header.Set("X-Zostay-Forwarded", strings.Join(zfws, ", "))
+	m.h.Set("X-Zostay-Forwarded", strings.Join(zfws, ", "))
 
 	return nil
 }
@@ -661,7 +830,7 @@ func (m *Message) MoveTo(root string, name string) error {
 }
 
 func (m *Message) Save() error {
-	msg, err := m.Message()
+	h, err := m.EmailHeader()
 	if err != nil {
 		return err
 	}
@@ -671,7 +840,12 @@ func (m *Message) Save() error {
 		return err
 	}
 
-	m.e.Header = msg.Header.Header
+	e, err := m.EmailEntity()
+	if err != nil {
+		return err
+	}
+
+	e.Header = h.Header
 	key, w, err := m.folder.Create(flags)
 	if err != nil {
 		return err
@@ -683,7 +857,9 @@ func (m *Message) Save() error {
 	}
 
 	m.key = key
-	err = m.e.WriteTo(w)
+	//fmt.Println("START WRITING")
+	err = e.WriteTo(w)
+	//fmt.Println("END WRITING")
 	if err != nil {
 		return err
 	}
