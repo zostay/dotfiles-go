@@ -91,13 +91,8 @@ func NewFileMessage(filename string) *Message {
 	return NewMessage(r)
 }
 
-func byteEqual(b1 []byte, s, e int, b2 []byte) bool {
-	for i := 0; i < e-s; i++ {
-		if b1[i+s] != b2[i] {
-			return false
-		}
-	}
-	return true
+func byteEqual(b1 []byte, b2 []byte) bool {
+	return strings.EqualFold(string(b1), string(b2))
 }
 
 func fixHeadersReader(r io.Reader) (io.Reader, error) {
@@ -107,19 +102,27 @@ func fixHeadersReader(r io.Reader) (io.Reader, error) {
 	}
 
 	var os bytes.Buffer
+	var lb byte
 
 ByteLoop:
-	for i, b := range bs {
+	for i := 0; len(bs) > 0; i++ {
+		b := bs[0]
 		bfs, ok := brokenStarts[b]
-		if ok && (i == 0 || bs[i-1] == '\r' || bs[i-1] == '\n') {
+		if ok && (i == 0 || lb == '\r' || lb == '\n') {
 			for _, bf := range bfs {
-				if len(bs)-i < len(bf.broken) && byteEqual(bs, i, i+len(bf.broken), bf.broken) {
+				if len(bs) >= len(bf.broken) && byteEqual(bs[0:len(bf.broken)], bf.broken) {
 					os.Write(bf.fix)
+					lb = bs[len(bf.broken)-1]
+					bs = bs[len(bf.broken):]
 					continue ByteLoop
 				}
 			}
+			lb = b
+			bs = bs[1:]
 			os.WriteByte(b)
 		} else {
+			lb = b
+			bs = bs[1:]
 			os.WriteByte(b)
 		}
 	}
