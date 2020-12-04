@@ -24,6 +24,10 @@ func init() {
 	}
 }
 
+func HomePath(file string) string {
+	return path.Join(HomeDir, file)
+}
+
 func SetEnvironment(env string) error {
 	fh, err := os.Create(path.Join(HomeDir, EnvFile))
 	if err != nil {
