@@ -447,6 +447,13 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 
 	actions = make([]string, 0, 1)
 
+	debugLogOp := func(op string, m *Message, ts []string) {
+		if fi.Debug > 0 {
+			f, _ := m.r.Filename()
+			fmt.Fprintf(os.Stderr, "%s %s : %s\n", op, f, strings.Join(ts, ", "))
+		}
+	}
+
 	if c.IsLabeling() {
 		if !fi.DryRun {
 			err := m.AddKeyword(c.Label...)
@@ -455,10 +462,7 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 			}
 		}
 
-		if fi.Debug > 0 {
-			f, _ := m.r.Filename()
-			fmt.Fprintf(os.Stderr, "LABELING %s : %s\n", f, strings.Join(c.Label, ", "))
-		}
+		debugLogOp("LABELING", m, c.Label)
 
 		actions = append(actions, "Labeled "+strings.Join(c.Label, ", "))
 	}
@@ -471,10 +475,7 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 			}
 		}
 
-		if fi.Debug > 0 {
-			f, _ := m.r.Filename()
-			fmt.Fprintf(os.Stderr, "CLEARING %s : %s\n", f, strings.Join(c.Clear, ", "))
-		}
+		debugLogOp("CLEARING", m, c.Clear)
 
 		actions = append(actions, "Cleared "+strings.Join(c.Clear, ", "))
 	}
@@ -487,10 +488,7 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 			}
 		}
 
-		if fi.Debug > 0 {
-			f, _ := m.r.Filename()
-			fmt.Fprintf(os.Stderr, "FORWARDING %s : %s\n", f, strings.Join(AddressListStrings(c.Forward), ", "))
-		}
+		debugLogOp("FORWARDING", m, AddressListStrings(c.Forward))
 
 		if fi.AllowSendingEmail {
 			actions = append(actions, "Forwarded "+strings.Join(AddressListStrings(c.Forward), ", "))
@@ -514,10 +512,7 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 			}
 		}
 
-		if fi.Debug > 0 {
-			f, _ := m.r.Filename()
-			fmt.Fprintf(os.Stderr, "MOVING %s : %s\n", f, c.Move)
-		}
+		debugLogOp("MOVING", m, []string{c.Move})
 
 		actions = append(actions, "Moved "+c.Move)
 	}
