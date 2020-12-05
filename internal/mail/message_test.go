@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/zostay/dotfiles-go/internal/secrets"
 )
 
 const (
@@ -52,6 +54,8 @@ Example, Inc.
 
 func TestFixHeadersReader(t *testing.T) {
 	t.Parallel()
+
+	secrets.QuickSetKeepers(secrets.MustNewInternal())
 
 	sr := strings.NewReader(badEmail)
 	fr, err := fixHeadersReader(sr)

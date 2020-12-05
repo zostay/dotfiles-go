@@ -16,39 +16,31 @@ const (
 
 var master = secrets.NewHttp()
 
-func checkPing(ctx context.Context) bool {
-	// "Re-verify our range to target... one ping only." — Captain Ramius
-	if ctx == nil {
-		err := master.Ping(context.Background())
-		ok := err == nil
-		return ok
-	} else {
-		pinger := make(chan bool)
-		go func() {
-			for {
-				if ctx.Err() != nil {
-					return
-				}
-
-				err := master.Ping(ctx)
-				ok := err == nil
-				pinger <- ok
-				time.Sleep(PingPeriod)
+func checkPing(ctx context.Context, n int) bool {
+	pinger := make(chan bool)
+	go func() {
+		for i := 0; n <= 0 || i < n; i++ {
+			if ctx.Err() != nil {
+				return
 			}
-		}()
 
-		for {
-			select {
-			case ok := <-pinger:
-				if ok {
-					return ok
-				}
-			case <-ctx.Done():
-				return false
+			err := master.Ping(ctx)
+			ok := err == nil
+			pinger <- ok
+			time.Sleep(PingPeriod)
+		}
+	}()
+
+	for {
+		select {
+		case ok := <-pinger:
+			if ok {
+				return ok
 			}
+		case <-ctx.Done():
+			return false
 		}
 	}
-	return false
 }
 
 func startSecretKeeper() {
@@ -85,17 +77,18 @@ func startSecretKeeper() {
 	ctx, cancel := context.WithTimeout(context.Background(), PingTimeout)
 	defer cancel()
 
-	if ok := checkPing(ctx); !ok {
+	if ok := checkPing(ctx, 0); !ok {
 		panic("secret keeper process stopped after startup?")
 	}
 }
 
 func RequiresSecretKeeper() {
-	if ok := checkPing(nil); !ok {
+	// "Re-verify our range to target... one ping only." — Captain Ramius
+	if ok := checkPing(context.Background(), 1); !ok {
 		startSecretKeeper()
 	}
 }
 
 func main() {
-	cmd.Execute()
+	_ = cmd.Execute()
 }

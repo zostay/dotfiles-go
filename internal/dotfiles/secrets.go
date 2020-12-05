@@ -1,43 +1,11 @@
 package dotfiles
 
 import (
-	"os"
-	"os/exec"
-	"path"
-	"strings"
+	"github.com/zostay/dotfiles-go/internal/secrets"
 )
-
-const (
-	ZostayGetSecretCommand = "bin/zostay-get-secret"
-)
-
-var (
-	ZostayGetSecret string
-)
-
-func init() {
-	var err error
-	homedir, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
-
-	ZostayGetSecret = path.Join(homedir, ZostayGetSecretCommand)
-}
 
 func GetSecret(name string) (string, error) {
-	var s string
-
-	c := exec.Command(ZostayGetSecret, name)
-
-	obs, err := c.Output()
-	if err != nil {
-		return s, err
-	}
-
-	s = strings.TrimSpace(string(obs))
-
-	return s, nil
+	return secrets.AutoKeeper().GetSecret(name)
 }
 
 func MustGetSecret(name string) string {

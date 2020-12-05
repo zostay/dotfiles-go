@@ -100,6 +100,10 @@ func (h *Http) Ping(ctx context.Context) error {
 		"http://"+h.baseURL+"/ping",
 		nil,
 	)
+	if err != nil {
+		return err
+	}
+
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err

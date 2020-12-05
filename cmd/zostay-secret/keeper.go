@@ -89,11 +89,11 @@ func SecretServerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	bs, _ := json.Marshal(sr)
-	w.Write(bs)
+	_, _ = w.Write(bs)
 }
 
 func PingHandler(w http.ResponseWriter, r *http.Request) {
-	io.WriteString(w, "HELLO")
+	_, _ = io.WriteString(w, "HELLO")
 	l.Print("Pong!")
 }
 

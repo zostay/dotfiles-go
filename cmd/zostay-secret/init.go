@@ -16,8 +16,6 @@ func init() {
 }
 
 var (
-	setCmd *cobra.Command
-
 	setLocalOnly, setRemoteOnly, setMasterOnly bool
 )
 
@@ -37,8 +35,6 @@ func init() {
 }
 
 var (
-	getCmd *cobra.Command
-
 	getLocalOnly, getRemoteOnly, getMasterOnly bool
 )
 
@@ -57,10 +53,6 @@ func init() {
 	cmd.AddCommand(getCmd)
 }
 
-var (
-	keeperCmd *cobra.Command
-)
-
 func init() {
 	keeperCmd := &cobra.Command{
 		Use:   "keeper",
@@ -70,12 +62,6 @@ func init() {
 
 	cmd.AddCommand(keeperCmd)
 }
-
-var (
-	pullCmd *cobra.Command
-
-	pullAll bool
-)
 
 func init() {
 	pullCmd := &cobra.Command{

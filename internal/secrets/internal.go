@@ -14,6 +14,14 @@ type Internal struct {
 	secrets map[string][]byte
 }
 
+func MustNewInternal() *Internal {
+	i, err := NewInternal()
+	if err != nil {
+		panic(err)
+	}
+	return i
+}
+
 func NewInternal() (*Internal, error) {
 	k := make([]byte, 32)
 	_, err := rand.Read(k)

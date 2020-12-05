@@ -2,6 +2,7 @@ package secrets
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/ansd/lastpass-go"
@@ -46,7 +47,10 @@ func NewLastPass() (*LastPass, error) {
 		return nil, err
 	}
 
-	SetMasterPassword("LASTPASS-MASTER-"+u, p)
+	err = SetMasterPassword("LASTPASS-MASTER-"+u, p)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error keeping master password in memory.")
+	}
 
 	return &LastPass{lp}, nil
 }

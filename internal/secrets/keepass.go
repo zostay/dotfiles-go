@@ -59,7 +59,10 @@ func NewKeepass() (*Keepass, error) {
 		return nil, err
 	}
 
-	SetMasterPassword("KEEPASS-MASTER-sterling", creds)
+	err = SetMasterPassword("KEEPASS-MASTER-sterling", creds)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error keeping master password in memory.")
+	}
 
 	return &k, nil
 }
@@ -140,7 +143,10 @@ func (k *Keepass) SetSecret(name, secret string) error {
 	for i := range k.db.Content.Root.Groups[0].Groups {
 		g := &k.db.Content.Root.Groups[0].Groups[i]
 		if g.Name == ZostayRobotGroup {
-			k.db.UnlockProtectedEntries()
+			err := k.db.UnlockProtectedEntries()
+			if err != nil {
+				return err
+			}
 
 			var foundE *keepass.Entry
 			for j, e := range g.Entries {
@@ -181,7 +187,7 @@ func (k *Keepass) SetSecret(name, secret string) error {
 				g.Entries = append(g.Entries, e)
 			}
 
-			err := k.db.LockProtectedEntries()
+			err = k.db.LockProtectedEntries()
 			if err != nil {
 				return err
 			}

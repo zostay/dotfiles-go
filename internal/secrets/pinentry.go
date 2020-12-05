@@ -7,8 +7,6 @@ import (
 	"github.com/gopasspw/gopass/pkg/pinentry"
 )
 
-var Master = NewHttp()
-
 func GetMasterPassword(which, name string) (string, error) {
 	secret, err := Master.GetSecret(name)
 	if err == nil {
