@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -57,7 +58,7 @@ func RunLabelMail(cmd *cobra.Command, args []string) {
 
 	actions, err := filter.LabelMessages(folders)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, err)
 	}
 
 	total := 0
