@@ -122,9 +122,14 @@ func (k *Keepass) GetSecret(name string) (string, error) {
 	for kw.Next() {
 		e := kw.Entry()
 		if e.GetTitle() == name {
-			k.db.UnlockProtectedEntries()
+			sm, err := k.db.GetStreamManager()
+			if err != nil {
+				return "", err
+			}
+
+			sm.UnlockProtectedEntry(e)
 			p := e.GetPassword()
-			k.db.LockProtectedEntries()
+			sm.LockProtectedEntry(e)
 			return p, nil
 		}
 	}
@@ -132,19 +137,56 @@ func (k *Keepass) GetSecret(name string) (string, error) {
 }
 
 func (k *Keepass) SetSecret(name, secret string) error {
-	e := keepass.NewEntry()
-	e.Values = []keepass.ValueData{
-		{Key: "Title", Value: keepass.V{Content: name}},
-		{Key: "Password", Value: keepass.V{Content: secret, Protected: w.NewBoolWrapper(true)}},
-	}
-
-	for i, g := range k.db.Content.Root.Groups[0].Groups {
+	for i := range k.db.Content.Root.Groups[0].Groups {
+		g := &k.db.Content.Root.Groups[0].Groups[i]
 		if g.Name == ZostayRobotGroup {
-			k.db.Content.Root.Groups[0].Groups[i].Entries = append(g.Entries, e)
+			k.db.UnlockProtectedEntries()
 
-			k.db.LockProtectedEntries()
+			var foundE *keepass.Entry
+			for j, e := range g.Entries {
+				if e.GetTitle() == name {
+					foundE = &g.Entries[j]
+					break
+				}
+			}
 
-			err := k.Save()
+			if foundE != nil {
+				var foundV *keepass.ValueData
+				for k, v := range foundE.Values {
+					if v.Key == "Password" {
+						foundV = &foundE.Values[k]
+						break
+					}
+				}
+
+				if foundV != nil {
+					foundV.Value.Content = secret
+				} else {
+					passwordValue := keepass.ValueData{
+						Key: "Password",
+						Value: keepass.V{
+							Content:   secret,
+							Protected: w.NewBoolWrapper(true),
+						},
+					}
+					foundE.Values = append(foundE.Values, passwordValue)
+				}
+			} else {
+				e := keepass.NewEntry()
+				e.Values = []keepass.ValueData{
+					{Key: "Title", Value: keepass.V{Content: name}},
+					{Key: "Password", Value: keepass.V{Content: secret, Protected: w.NewBoolWrapper(true)}},
+				}
+
+				g.Entries = append(g.Entries, e)
+			}
+
+			err := k.db.LockProtectedEntries()
+			if err != nil {
+				return err
+			}
+
+			err = k.Save()
 			if err != nil {
 				return err
 			}

@@ -7,10 +7,10 @@ import (
 	"github.com/gopasspw/gopass/pkg/pinentry"
 )
 
-var master = NewHttp()
+var Master = NewHttp()
 
 func GetMasterPassword(which, name string) (string, error) {
-	secret, err := master.GetSecret(name)
+	secret, err := Master.GetSecret(name)
 	if err == nil {
 		return secret, nil
 	} else {
@@ -27,7 +27,7 @@ func GetMasterPassword(which, name string) (string, error) {
 }
 
 func SetMasterPassword(name, secret string) error {
-	return master.SetSecret(name, secret)
+	return Master.SetSecret(name, secret)
 }
 
 func PinEntry(title, desc, prompt, ok string) (string, error) {
