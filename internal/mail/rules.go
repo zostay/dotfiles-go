@@ -24,6 +24,7 @@ type Match struct {
 	To                  string `yaml:"to"`
 	ToDomain            string `yaml:"to_domain"`
 	Sender              string `yaml:"sender"`
+	DeliveredTo         string `yaml:"delivered_to"`
 	Subject             string `yaml:"subject"`
 	SubjectFold         string `yaml:"isubject"`
 	SubjectContains     string `yaml:"subject_contains"`

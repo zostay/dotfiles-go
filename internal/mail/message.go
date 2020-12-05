@@ -644,6 +644,17 @@ var (
 		},
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
+			if c.DeliveredTo == "" {
+				return testResult{true, "no delivered_to test"}, nil
+			}
+
+			(*tests)++
+
+			deliveredTo, err := m.AddressList("Delivered-To")
+			return testAddress("Delivered-To", "delivered_to", c.DeliveredTo, deliveredTo, err)
+		},
+
+		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.Subject == "" {
 				return testResult{true, "no exact subject test"}, nil
 			}
