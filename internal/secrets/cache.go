@@ -24,7 +24,7 @@ func (c *Cacher) GetSecret(name string) (string, error) {
 
 		err = c.target.SetSecret(name, s)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error caching secret locally.")
+			fmt.Fprintf(os.Stderr, "Error caching secret %s locally: %v\n", name, err)
 			return s, nil
 		}
 	} else if err != nil {

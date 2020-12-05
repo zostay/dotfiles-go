@@ -139,7 +139,21 @@ func (k *Keepass) GetSecret(name string) (string, error) {
 	return "", ErrNotFound
 }
 
+func (k *Keepass) ensureRobotGroupExists() {
+	for _, g := range k.db.Content.Root.Groups[0].Groups {
+		if g.Name == ZostayRobotGroup {
+			return
+		}
+	}
+
+	gs := k.db.Content.Root.Groups[0].Groups
+	k.db.Content.Root.Groups[0].Groups = append(gs, keepass.Group{
+		Name: ZostayRobotGroup,
+	})
+}
+
 func (k *Keepass) SetSecret(name, secret string) error {
+	k.ensureRobotGroupExists()
 	for i := range k.db.Content.Root.Groups[0].Groups {
 		g := &k.db.Content.Root.Groups[0].Groups[i]
 		if g.Name == ZostayRobotGroup {
