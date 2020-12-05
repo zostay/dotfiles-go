@@ -16,10 +16,12 @@ RUN apt-get install --yes zsh lastpass-cli
 ENV HOME=/home/sterling
 COPY --from=builder /go/bin/forward-file /bin/forward-file
 COPY --from=builder /go/bin/label-mail /bin/label-mail
+COPY --from=builder /go/bin/zostay-secret /bin/zostay-secret
 COPY ./dist/entrypoint.sh /entrypoint.sh
 
 VOLUME /home/sterling
 
+ENV PATH=/go/bin:/home/sterling/bin:$PATH
 ENV UID=1000
 
 ENTRYPOINT ["/entrypoint.sh"]

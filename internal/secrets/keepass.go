@@ -200,7 +200,7 @@ func (k *Keepass) SetSecret(name, secret string) error {
 
 func (k *Keepass) Group(name string) (*keepass.Group, error) {
 	for _, g := range k.db.Content.Root.Groups {
-		if g.Name == ZostayRobotGroup {
+		if g.Name == name {
 			return &g, nil
 		}
 	}
