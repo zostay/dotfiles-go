@@ -28,7 +28,7 @@ var (
 		"gmail.Spam":      struct{}{},
 		"gmail.Draft":     struct{}{},
 		"gmail.Trash":     struct{}{},
-		"gmail.Sent_mail": struct{}{},
+		"gmail.Sent_Mail": struct{}{},
 	}
 )
 
