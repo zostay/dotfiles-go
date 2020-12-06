@@ -14,7 +14,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/emersion/go-maildir"
 	"github.com/emersion/go-message"
 	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/mail"
@@ -81,8 +80,13 @@ func NewMessage(r Opener) *Message {
 	return &Message{r: r}
 }
 
-func NewMailDirMessage(folder maildir.Dir, key string) *Message {
-	r := NewMailDirOpener(folder, key)
+func NewMailDirMessage(key, flags, rd string, folder *MailDirFolder) *Message {
+	r := NewMailDirOpener(key, flags, rd, folder)
+	return NewMessage(r)
+}
+
+func NewMailDirMessageWithStat(key, flags, rd string, folder *MailDirFolder, fi *os.FileInfo) *Message {
+	r := NewMailDirOpenerWithStat(key, flags, rd, folder, fi)
 	return NewMessage(r)
 }
 
@@ -130,6 +134,14 @@ ByteLoop:
 	return &os, err
 }
 
+func (m *Message) Filename() string {
+	return m.r.Filename()
+}
+
+func (m *Message) Stat() (os.FileInfo, error) {
+	return m.r.Stat()
+}
+
 func (m *Message) EmailEntity() (*message.Entity, error) {
 	r, err := m.r.Open()
 	if err != nil {
@@ -145,7 +157,7 @@ func (m *Message) EmailEntity() (*message.Entity, error) {
 
 	e, err := message.Read(fr)
 	if err != nil {
-		f, _ := m.r.Filename()
+		f := m.r.Filename()
 		return nil, fmt.Errorf("unable to parse email entity for mail %s: %w", f, err)
 	} else {
 		return e, nil
@@ -839,7 +851,7 @@ func (m *Message) MoveTo(root string, name string) error {
 		return errors.New("folder path does not exist or is not a diretory")
 	}
 
-	destFolder := maildir.Dir(dest)
+	destFolder := NewMailDirFolder(root, name)
 	err := m.r.(*MailDirOpener).MoveTo(destFolder)
 	if err != nil {
 		return err
@@ -863,6 +875,7 @@ func (m *Message) Save() error {
 	if err != nil {
 		return err
 	}
+	defer w.Close()
 
 	//fmt.Println("START WRITING")
 	e.Header = h.Header

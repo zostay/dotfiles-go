@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/emersion/go-maildir"
 
 	"github.com/zostay/dotfiles-go/internal/dotfiles"
 )
@@ -72,36 +71,31 @@ func (fi *Filter) LimitSince() time.Time {
 	return time.Now().Add(-fi.LimitRecent)
 }
 
-func (fi *Filter) folder(folder string) maildir.Dir {
-	return maildir.Dir(path.Join(fi.MailRoot, folder))
+func (fi *Filter) folder(folder string) *MailDirFolder {
+	return NewMailDirFolder(fi.MailRoot, folder)
 }
 
 func (fi *Filter) Messages(folder string) ([]*Message, error) {
 	var ms []*Message
 
 	f := fi.folder(folder)
-
-	ks, err := f.Keys()
+	allms, err := f.Messages()
 	if err != nil {
-		return ms, fmt.Errorf("unable to retrieve keys from maildir %s: %w", f, err)
+		return ms, err
 	}
+
+	ms = make([]*Message, 0, len(allms))
 
 	var since time.Time
 	if fi.LimitRecent > 0 {
 		since = fi.LimitSince()
 	}
 
-	ms = make([]*Message, 0, len(ks))
-	for _, k := range ks {
+	for _, m := range allms {
 		if fi.LimitRecent > 0 {
-			fn, err := f.Filename(k)
+			info, err := m.Stat()
 			if err != nil {
-				return ms, fmt.Errorf("unable to get filename for folder %s and key %s: %w", folder, k, err)
-			}
-
-			info, err := os.Stat(fn)
-			if err != nil {
-				return ms, fmt.Errorf("unable to stat %s: %w", fn, err)
+				return ms, fmt.Errorf("unable to stat %s: %w", m.Filename(), err)
 			}
 
 			if info.ModTime().Before(since) {
@@ -109,15 +103,10 @@ func (fi *Filter) Messages(folder string) ([]*Message, error) {
 			}
 		}
 
-		ms = append(ms, NewMailDirMessage(f, k))
+		ms = append(ms, m)
 	}
 
 	return ms, nil
-}
-
-func (fi *Filter) Message(folder string, key string) *Message {
-	f := fi.folder(folder)
-	return NewMailDirMessage(f, key)
 }
 
 type ActionsSummary map[string]int
@@ -206,8 +195,13 @@ func (fi *Filter) LabelFolderMessages(
 	}
 
 	for _, msg := range msgs {
+		fmt.Fprintf(os.Stderr, "FOLDER %s\n", msg.r.Folder())
 		if _, skip := SkipFolder[msg.r.Folder()]; skip {
 			continue
+		}
+
+		if fi.Debug > 2 {
+			fmt.Fprintf(os.Stderr, "READING %s\n", msg.Filename())
 		}
 
 		// Purged, leave it be

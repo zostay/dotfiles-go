@@ -4,42 +4,65 @@ import (
 	"io"
 	"os"
 	"path"
-
-	"github.com/emersion/go-maildir"
 )
 
 type Opener interface {
 	Open() (io.ReadCloser, error)
-	Filename() (string, error)
+	Filename() string
 	Folder() string
+	Stat() (os.FileInfo, error)
 }
 
 type MailDirOpener struct {
 	key    string
-	folder maildir.Dir
+	flags  string
+	rd     string
+	folder *MailDirFolder
+	fi     *os.FileInfo
 }
 
-func NewMailDirOpener(folder maildir.Dir, key string) *MailDirOpener {
-	return &MailDirOpener{
-		folder: folder,
-		key:    key,
+func NewMailDirOpener(key, flags, rd string, folder *MailDirFolder) *MailDirOpener {
+	return &MailDirOpener{key, flags, rd, folder, nil}
+}
+
+func NewMailDirOpenerWithStat(key, flags, rd string, folder *MailDirFolder, fi *os.FileInfo) *MailDirOpener {
+	return &MailDirOpener{key, flags, rd, folder, fi}
+}
+
+func (r *MailDirOpener) Stat() (os.FileInfo, error) {
+	if r.fi != nil {
+		return *r.fi, nil
 	}
+
+	fi, err := os.Stat(r.Filename())
+	if err != nil {
+		r.fi = &fi
+	}
+	return fi, err
 }
 
 func (r *MailDirOpener) Open() (io.ReadCloser, error) {
-	return r.folder.Open(r.key)
+	return os.Open(r.Filename())
 }
 
-func (r *MailDirOpener) Filename() (string, error) {
-	return r.folder.Filename(r.key)
+func (r *MailDirOpener) FlagSuffix() string {
+	if r.flags == "" {
+		return ""
+	}
+	return ":" + r.flags
+}
+
+func (r *MailDirOpener) Filename() string {
+	return path.Join(r.folder.Path(), r.rd, r.key+r.FlagSuffix())
 }
 
 func (r *MailDirOpener) Folder() string {
-	return path.Dir(string(r.folder))
+	return r.folder.Basename()
 }
 
-func (r *MailDirOpener) MoveTo(target maildir.Dir) error {
-	err := r.folder.Move(target, r.key)
+func (r *MailDirOpener) MoveTo(target *MailDirFolder) error {
+	targetFile := path.Join(target.Path(), r.rd, r.key+r.FlagSuffix())
+	err := os.Rename(r.Filename(), targetFile)
 	if err != nil {
 		return err
 	}
@@ -49,31 +72,43 @@ func (r *MailDirOpener) MoveTo(target maildir.Dir) error {
 	return nil
 }
 
-func (r *MailDirOpener) Replace() (io.WriteCloser, error) {
-	var w io.WriteCloser
+type MailDirWriter struct {
+	r *MailDirOpener
 
-	flags, err := r.folder.Flags(r.key)
+	tmp string
+	f   io.WriteCloser
+}
+
+func NewMailDirWriter(r *MailDirOpener) (*MailDirWriter, error) {
+	tmp := path.Join(r.folder.TempDirPath(), r.key+r.FlagSuffix())
+	f, err := os.Create(tmp)
 	if err != nil {
-		return w, err
+		return nil, err
 	}
 
-	key, w, err := r.folder.Create(flags)
+	w := MailDirWriter{r, tmp, f}
+	return &w, nil
+}
+
+func (w *MailDirWriter) Write(bs []byte) (int, error) {
+	return w.f.Write(bs)
+}
+
+func (w *MailDirWriter) Close() error {
+	err := w.f.Close()
 	if err != nil {
-		return w, err
+		return err
 	}
 
-	r.key = key
+	return os.Rename(w.tmp, w.r.Filename())
+}
 
-	err = r.folder.Remove(r.key)
-	if err != nil {
-		return w, err
-	}
-
-	return w, nil
+func (r *MailDirOpener) Replace() (*MailDirWriter, error) {
+	return NewMailDirWriter(r)
 }
 
 func (r *MailDirOpener) Remove() error {
-	return r.folder.Remove(r.key)
+	return os.Remove(r.Filename())
 }
 
 type MessageOpener struct {
@@ -88,8 +123,8 @@ func (r *MessageOpener) Open() (io.ReadCloser, error) {
 	return os.Open(r.filename)
 }
 
-func (r *MessageOpener) Filename() (string, error) {
-	return r.filename, nil
+func (r *MessageOpener) Filename() string {
+	return r.filename
 }
 
 func (r *MessageOpener) Folder() string {
@@ -98,4 +133,8 @@ func (r *MessageOpener) Folder() string {
 		f = path.Base(f)
 	}
 	return path.Dir(f)
+}
+
+func (r *MessageOpener) Stat() (os.FileInfo, error) {
+	return os.Stat(r.filename)
 }
