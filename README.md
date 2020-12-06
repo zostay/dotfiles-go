@@ -13,3 +13,9 @@ to test the forwarding feature of label-mail.
 This is my email filtering system. I could use procmail like a normal person,
 but I like being able to automate the filtering of mail in any mailbox, not just
 the inbox, which allows me to setup personal data retention rules and the like.
+
+## zostay-secret
+
+A command-line tool for working with secrets. Primary store is in LastPass with
+a local (currently partial) backup in a local Keepass database. It provides a
+few other tools for working with secrets as well.
