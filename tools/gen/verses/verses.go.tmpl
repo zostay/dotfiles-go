@@ -1,0 +1,20 @@
+package esv
+
+var Books = []Book{
+{{- range .Books}}
+    {
+        name: "{{.Name}}",
+        verses: []VerseRef{
+{{- range $i, $v := .Verses}}
+{{- if eq 0 (index $v 0) -}}
+            JustVerse{ {{index $v 1}} },
+{{- else -}}
+            ChapterVerse{ {{index $v 0}},{{index $v 1}} },
+{{- end -}}
+{{- if Mod $i 4}}
+{{end}}
+{{- end}}
+        },
+    },
+{{- end}}
+}
