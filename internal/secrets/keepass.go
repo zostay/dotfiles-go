@@ -125,14 +125,18 @@ func (k *Keepass) GetSecret(name string) (string, error) {
 	for kw.Next() {
 		e := kw.Entry()
 		if e.GetTitle() == name {
-			sm, err := k.db.GetStreamManager()
+			err := k.db.UnlockProtectedEntries()
 			if err != nil {
 				return "", err
 			}
 
-			sm.UnlockProtectedEntry(e)
 			p := e.GetPassword()
-			sm.LockProtectedEntry(e)
+
+			err = k.db.LockProtectedEntries()
+			if err != nil {
+				return "", err
+			}
+
 			return p, nil
 		}
 	}
