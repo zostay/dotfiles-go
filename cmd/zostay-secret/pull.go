@@ -3,11 +3,12 @@ package main
 import (
 	"github.com/spf13/cobra"
 
+	"github.com/zostay/dotfiles-go/internal/keeper"
 	"github.com/zostay/dotfiles-go/internal/secrets"
 )
 
 func RunSecretPull(cmd *cobra.Command, args []string) {
-	RequiresSecretKeeper()
+	keeper.RequiresSecretKeeper()
 
 	lp, err := secrets.NewLastPass()
 	if err != nil {

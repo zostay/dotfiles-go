@@ -5,11 +5,12 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/zostay/dotfiles-go/internal/keeper"
 	"github.com/zostay/dotfiles-go/internal/secrets"
 )
 
 func RunSetSecret(cmd *cobra.Command, args []string) error {
-	RequiresSecretKeeper()
+	keeper.RequiresSecretKeeper()
 
 	if setLocalOnly && setRemoteOnly || setLocalOnly && setMasterOnly || setRemoteOnly && setMasterOnly {
 		return errors.New("Only one of these options may be specified: --local-only/-l, --remote-only/-r, --master/-m")

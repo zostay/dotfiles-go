@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/zostay/dotfiles-go/internal/esv"
+	"github.com/zostay/dotfiles-go/internal/keeper"
 )
 
 var (
@@ -41,22 +42,25 @@ func init() {
 }
 
 func RunTodayRandom(cmd *cobra.Command, args []string) {
+	keeper.RequiresSecretKeeper()
+
 	rand.Seed(time.Now().UTC().UnixNano())
-	//query := strings.Join(args, " ")
 	v, err := esv.RandomVerse()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(wrap.Wrap(v, 80))
+	fmt.Println(wrap.Wrap(v, 70))
 }
 
 func RunTodayShow(cmd *cobra.Command, args []string) {
+	keeper.RequiresSecretKeeper()
+
 	ref := strings.Join(args, " ")
 	v, err := esv.GetVerse(ref)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(wrap.Wrap(v, 80))
+	fmt.Println(wrap.Wrap(v, 70))
 }
 
 func main() {

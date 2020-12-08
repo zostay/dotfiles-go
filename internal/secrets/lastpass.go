@@ -4,15 +4,24 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path"
 
 	"github.com/ansd/lastpass-go"
+	"github.com/joho/godotenv"
 )
+
+const LocalEnv = ".zshrc.local"
 
 var (
 	LastPassUsername string
 )
 
 func init() {
+	homedir, err := os.UserHomeDir()
+	if err == nil {
+		_ = godotenv.Load(path.Join(homedir, LocalEnv))
+	}
+
 	if u := os.Getenv("LPASS_USERNAME"); u != "" {
 		LastPassUsername = u
 	}
