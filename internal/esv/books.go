@@ -4,8 +4,6 @@ import (
 	"strconv"
 )
 
-//go:generate go run ../../scripts/gen/verses/main.go
-
 type Book struct {
 	name   string
 	verses []VerseRef

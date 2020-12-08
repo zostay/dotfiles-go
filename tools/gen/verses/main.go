@@ -8,6 +8,8 @@ import (
 	"text/template"
 )
 
+//go:generate go run main.go
+
 const (
 	DatabaseFile = "esv.json"
 	TemplateFile = "verses.go.tmpl"
