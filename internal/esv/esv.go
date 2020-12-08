@@ -38,7 +38,10 @@ func RandomReference() string {
 
 func RandomVerse() (string, error) {
 	ref := RandomReference()
+	return GetVerse(ref)
+}
 
+func GetVerse(ref string) (string, error) {
 	c := esv.New("")
 	tr, err := c.PassageText(ref,
 		esv.WithIncludeVerseNumbers(false),
