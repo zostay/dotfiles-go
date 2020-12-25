@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-
 	"github.com/zostay/dotfiles-go/internal/dotfiles"
 )
 
@@ -195,7 +194,6 @@ func (fi *Filter) LabelFolderMessages(
 	}
 
 	for _, msg := range msgs {
-		fmt.Fprintf(os.Stderr, "FOLDER %s\n", msg.r.Folder())
 		if _, skip := SkipFolder[msg.r.Folder()]; skip {
 			continue
 		}
@@ -443,7 +441,7 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 
 	debugLogOp := func(op string, m *Message, ts []string) {
 		if fi.Debug > 0 {
-			f, _ := m.r.Filename()
+			f := m.r.Filename()
 			fmt.Fprintf(os.Stderr, "%s %s : %s\n", op, f, strings.Join(ts, ", "))
 		}
 	}

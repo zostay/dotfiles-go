@@ -338,7 +338,12 @@ func (m *Message) Date() (time.Time, error) {
 		return time.Time{}, err
 	}
 
-	return h.Date()
+	t, err := h.Date()
+	if err != nil {
+		return t, fmt.Errorf("unable to parse Date header: %w", err)
+	}
+
+	return t, nil
 }
 
 func (m *Message) Keywords() ([]string, error) {
