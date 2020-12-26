@@ -14,6 +14,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/araddon/dateparse"
 	"github.com/emersion/go-message"
 	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/mail"
@@ -333,14 +334,25 @@ func (m *Message) ForwardReader(to AddressList) (*bytes.Buffer, error) {
 }
 
 func (m *Message) Date() (time.Time, error) {
+	var (
+		t   time.Time
+		err error
+	)
+
 	h, err := m.EmailHeader()
 	if err != nil {
 		return time.Time{}, err
 	}
 
-	t, err := h.Date()
+	t, err = h.Date()
 	if err != nil {
-		return t, fmt.Errorf("unable to parse Date header: %w", err)
+		hd := h.Get("Date")
+		t, err = dateparse.ParseAny(hd)
+		if err != nil {
+			return t, fmt.Errorf("unable to parse Date header (%s): %w", h.Get("Date"), err)
+		}
+
+		return t, nil
 	}
 
 	return t, nil
