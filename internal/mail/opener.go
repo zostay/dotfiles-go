@@ -6,8 +6,14 @@ import (
 	"path"
 )
 
+type ReadSeekCloser interface {
+	io.Reader
+	io.Seeker
+	io.Closer
+}
+
 type Opener interface {
-	Open() (io.ReadCloser, error)
+	Open() (ReadSeekCloser, error)
 	Filename() string
 	Folder() string
 	Stat() (os.FileInfo, error)
@@ -41,7 +47,7 @@ func (r *MailDirOpener) Stat() (os.FileInfo, error) {
 	return fi, err
 }
 
-func (r *MailDirOpener) Open() (io.ReadCloser, error) {
+func (r *MailDirOpener) Open() (ReadSeekCloser, error) {
 	return os.Open(r.Filename())
 }
 
@@ -119,7 +125,7 @@ func NewMessageOpener(filename string) *MessageOpener {
 	return &MessageOpener{filename}
 }
 
-func (r *MessageOpener) Open() (io.ReadCloser, error) {
+func (r *MessageOpener) Open() (ReadSeekCloser, error) {
 	return os.Open(r.filename)
 }
 

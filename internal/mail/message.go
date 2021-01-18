@@ -106,12 +106,17 @@ func fixHeadersReader(r io.Reader) (io.Reader, error) {
 		return nil, err
 	}
 
-	var os bytes.Buffer
-	var lb byte
+	var (
+		os       bytes.Buffer
+		lb       byte
+		ff       bytes.Buffer
+		ffEnable = true
+	)
 
 ByteLoop:
 	for i := 0; len(bs) > 0; i++ {
 		b := bs[0]
+
 		bfs, ok := brokenStarts[b]
 		if ok && (i == 0 || lb == '\r' || lb == '\n') {
 			for _, bf := range bfs {
@@ -122,14 +127,62 @@ ByteLoop:
 					continue ByteLoop
 				}
 			}
-			lb = b
-			bs = bs[1:]
-			os.WriteByte(b)
-		} else {
-			lb = b
-			bs = bs[1:]
-			os.WriteByte(b)
 		}
+
+		// Watch for weird unfolded lines and fold them. For example,
+		//
+		// To: <address@foo
+		// micrsoftexchangesux.com>
+		//
+		// is something I've seen in the wild.
+		//
+		// This looks for a line that starts with text. If it encounters a colon
+		// at some point, then we assume it's a header and move on. If it
+		// encounters a newline before the header, it assumes a bad fold, adds a
+		// space to the front and writes out the accumulated buffer and then we
+		// move on.
+		if ffEnable && lb == '\n' && b == '\n' {
+			// watch for the first blank line, signaling end of header
+			ffEnable = false
+			// os.WriteString("---- STOPPING ----\n\r")
+		}
+		if ffEnable && ff.Len() == 0 && (i == 0 || lb == '\r' || lb == '\n') && (b != ' ' && b != '\t') {
+			ff.WriteByte(b)
+			lb = b
+			bs = bs[1:]
+			continue ByteLoop
+		}
+
+		if ff.Len() > 0 {
+			if b == ':' {
+				os.Write(ff.Bytes())
+				os.WriteByte(b)
+				ff.Truncate(0)
+
+				lb = b
+				bs = bs[1:]
+				continue ByteLoop
+			} else if b == '\r' || b == '\n' {
+				os.WriteString("        ")
+				os.Write(ff.Bytes())
+				ff.Truncate(0)
+				os.WriteByte(b)
+
+				lb = b
+				bs = bs[1:]
+				continue ByteLoop
+			} else {
+				ff.WriteByte(b)
+
+				lb = b
+				bs = bs[1:]
+				continue ByteLoop
+			}
+		}
+
+		lb = b
+		bs = bs[1:]
+		os.WriteByte(b)
 	}
 
 	return &os, err
@@ -143,6 +196,15 @@ func (m *Message) Stat() (os.FileInfo, error) {
 	return m.r.Stat()
 }
 
+func retryEmailEntity(r io.ReadSeeker) (io.Reader, error) {
+	_, err := r.Seek(0, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	return fixHeadersReader(r)
+}
+
 func (m *Message) EmailEntity() (*message.Entity, error) {
 	r, err := m.r.Open()
 	if err != nil {
@@ -151,18 +213,23 @@ func (m *Message) EmailEntity() (*message.Entity, error) {
 
 	defer r.Close()
 
-	fr, err := fixHeadersReader(r)
+	e, err := message.Read(r)
 	if err != nil {
-		return nil, err
+		// try to fix the email entity read
+		fr, ierr := retryEmailEntity(r)
+		// panic(string(fr.(*bytes.Buffer).Bytes()))
+		if ierr == nil { // so far so good
+			e, ierr = message.Read(fr)
+			//fmt
+			//exPrintln(ierr)
+			if ierr != nil { // still failed
+				f := m.r.Filename()
+				return nil, fmt.Errorf("unable to parse email entity for mail %s: %w", f, err)
+			}
+		}
 	}
 
-	e, err := message.Read(fr)
-	if err != nil {
-		f := m.r.Filename()
-		return nil, fmt.Errorf("unable to parse email entity for mail %s: %w", f, err)
-	} else {
-		return e, nil
-	}
+	return e, nil
 }
 
 func (m *Message) EmailReader() (*mail.Reader, error) {
