@@ -13,7 +13,7 @@ require (
 	github.com/joho/godotenv v1.3.0
 	github.com/kr/pretty v0.2.1
 	github.com/spf13/cobra v1.1.1
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/tobischo/gokeepasslib/v3 v3.1.0
 	github.com/zalando/go-keyring v0.1.0
 	github.com/zostay/go-esv-api v0.0.0-20201114154340-be89d3d9bb0c

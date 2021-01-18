@@ -518,10 +518,86 @@ func (m *Message) AddressList(key string) (AddressList, error) {
 
 	addr, err = h.AddressList(key)
 	if err != nil {
-		return addr, fmt.Errorf("unable to read address list of header %s: %w", key, err)
+		// Email is complicated. The net/mail parser is fairly naive, but even a
+		// complete parser with full obsolete production support (which net/mail
+		// lacks as of this writing) is not going to be able to parse the email
+		// in many cases. This heuristic attempts to catch the oddities.
+		hal := h.Get(key)
+
+		addr := fallbackAddressList(hal)
+		if addr == nil {
+			return addr, fmt.Errorf("unable to read address list of header %s: %w", key, err)
+		}
 	}
 
 	return addr, nil
+}
+
+func fallbackAddressList(h string) []*mail.Address {
+	// split by comma
+	mhs := strings.FieldsFunc(h, func(c rune) bool {
+		return c == ','
+	})
+
+	addr := make([]*mail.Address, 0, len(mhs))
+	for _, mh := range mhs {
+		mb := fallbackAddress(mh)
+		if mb != nil {
+			addr = append(addr, mb)
+		}
+	}
+
+	if len(addr) == 0 {
+		addr = nil
+	}
+
+	return addr
+}
+
+func fallbackAddress(h string) *mail.Address {
+	in := make([]int, 0, len(h))
+	out := make([]int, 0, len(h))
+	remove := make([]int, 0, len(h))
+	for i, c := range h {
+		if c == '(' {
+			in = append(in, i)
+		} else if len(in) > 0 && c == ')' {
+			out = append(out, i)
+		}
+
+		if len(in) > 0 && len(in) == len(out) {
+			remove = append(remove, in[0], out[len(out)-1])
+			in = make([]int, 0, len(h))
+			out = make([]int, 0, len(h))
+		}
+	}
+
+	for i := len(remove); i > 0; i -= 2 {
+		e := remove[i-1]
+		s := remove[i-2]
+		h = h[:s] + h[e:]
+	}
+
+	// guess using <> brackets
+	if la := strings.IndexRune(h, '<'); la > -1 {
+		if ra := strings.IndexRune(h, '>'); ra > la {
+			return &mail.Address{
+				Address: h[la+1 : ra],
+			}
+		}
+	}
+
+	// guess using the thing that contains an @
+	fs := strings.Fields(h)
+	for _, f := range fs {
+		if strings.ContainsRune(f, '@') {
+			return &mail.Address{
+				Address: f,
+			}
+		}
+	}
+
+	return nil
 }
 
 func (m *Message) Subject() (string, error) {
