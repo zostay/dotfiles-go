@@ -44,6 +44,8 @@ var (
 	fixes = []brokenFix{
 		{[]byte("Content-Transfer-Encoding: 8-bit"),
 			[]byte("Content-Transfer-Encoding: 8bit")},
+		{[]byte("Content-Type: text/html; charset=\"ascii\""),
+			[]byte("Content-Type: text/html; charset=\"utf-8\"")},
 	}
 
 	FromEmailAddress AddressList
@@ -205,14 +207,17 @@ func retryEmailEntity(r io.ReadSeeker) (io.Reader, error) {
 	return fixHeadersReader(r)
 }
 
-func (m *Message) EmailEntity() (*message.Entity, error) {
-	r, err := m.r.Open()
+type fc struct{}
+
+func (fc) Close() error { return nil }
+
+func (m *Message) EmailEntity() (io.Closer, *message.Entity, error) {
+	r, err := m.Reader()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	defer r.Close()
-
+	var rc io.Closer = r
 	e, err := message.Read(r)
 	if err != nil {
 		// try to fix the email entity read
@@ -220,25 +225,26 @@ func (m *Message) EmailEntity() (*message.Entity, error) {
 		// panic(string(fr.(*bytes.Buffer).Bytes()))
 		if ierr == nil { // so far so good
 			e, ierr = message.Read(fr)
-			//fmt
-			//exPrintln(ierr)
-			if ierr != nil { // still failed
+			if ierr == nil {
+				rc = fc{}
+			} else { // still failed
+				r.Close()
 				f := m.r.Filename()
-				return nil, fmt.Errorf("unable to parse email entity for mail %s: %w", f, err)
+				return nil, nil, fmt.Errorf("unable to parse email entity for mail %q: %w", f, err)
 			}
 		}
 	}
 
-	return e, nil
+	return rc, e, nil
 }
 
-func (m *Message) EmailReader() (*mail.Reader, error) {
-	e, err := m.EmailEntity()
+func (m *Message) EmailReader() (io.Closer, *mail.Reader, error) {
+	c, e, err := m.EmailEntity()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	} else {
 		m := mail.NewReader(e)
-		return m, nil
+		return c, m, nil
 	}
 }
 
@@ -247,17 +253,18 @@ func (m *Message) EmailHeader() (*mail.Header, error) {
 		return m.h, nil
 	}
 
-	msg, err := m.EmailReader()
+	c, msg, err := m.EmailReader()
 	if err != nil {
 		return nil, err
 	} else {
+		defer c.Close()
 		m.h = &msg.Header
 		return &msg.Header, nil
 	}
 }
 
 func (m *Message) Raw() ([]byte, error) {
-	r, err := m.r.Open()
+	r, err := m.Reader()
 	if err != nil {
 		return []byte{}, err
 	}
@@ -267,15 +274,16 @@ func (m *Message) Raw() ([]byte, error) {
 	return ioutil.ReadAll(r)
 }
 
-func (m *Message) Reader() (io.ReadCloser, error) {
+func (m *Message) Reader() (ReadSeekCloser, error) {
 	return m.r.Open()
 }
 
 func (m *Message) ForwardReader(to AddressList) (*bytes.Buffer, error) {
-	r, err := m.EmailReader()
+	c, r, err := m.EmailReader()
 	if err != nil {
 		return nil, err
 	}
+	defer c.Close()
 
 	var (
 		h   mail.Header
@@ -317,12 +325,12 @@ func (m *Message) ForwardReader(to AddressList) (*bytes.Buffer, error) {
 
 	w, err := mail.CreateWriter(&buf, h)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error create message: %w", err)
 	}
 
 	ip, err := w.CreateInline()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error create inline message: %w", err)
 	}
 
 	for {
@@ -343,7 +351,7 @@ func (m *Message) ForwardReader(to AddressList) (*bytes.Buffer, error) {
 
 			pw, err := ip.CreatePart(pfh)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error creating inline part: %w", err)
 			}
 
 			if ct == "text/plain" {
@@ -383,7 +391,7 @@ func (m *Message) ForwardReader(to AddressList) (*bytes.Buffer, error) {
 
 			pw, err := w.CreateAttachment(pfh)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error creating attachment: %w", err)
 			}
 
 			_, _ = io.Copy(pw, pr.Body)
@@ -416,7 +424,7 @@ func (m *Message) Date() (time.Time, error) {
 		hd := h.Get("Date")
 		t, err = dateparse.ParseAny(hd)
 		if err != nil {
-			return t, fmt.Errorf("unable to parse Date header (%s): %w", h.Get("Date"), err)
+			return t, fmt.Errorf("unable to parse Date header %q: %w", h.Get("Date"), err)
 		}
 
 		return t, nil
@@ -593,7 +601,7 @@ func (m *Message) AddressList(key string) (AddressList, error) {
 
 		addr := fallbackAddressList(hal)
 		if addr == nil {
-			return addr, fmt.Errorf("unable to read address list of header %s: %w", key, err)
+			return addr, fmt.Errorf("unable to read address list of header %q: %w", key, err)
 		}
 	}
 
@@ -1026,10 +1034,11 @@ func (m *Message) Save() error {
 		return err
 	}
 
-	e, err := m.EmailEntity()
+	c, e, err := m.EmailEntity()
 	if err != nil {
 		return err
 	}
+	defer c.Close()
 
 	w, err := m.r.(*MailDirOpener).Replace()
 	if err != nil {
@@ -1042,7 +1051,7 @@ func (m *Message) Save() error {
 	err = e.WriteTo(w)
 	//fmt.Println("END WRITING")
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to save %q: %w", m.Filename(), err)
 	}
 
 	return nil

@@ -65,6 +65,8 @@ github.com/dominikschulz/github-releases v0.0.3/go.mod h1:uByjb2frn7tRe9DiPHBk5T
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/emersion/go-message v0.14.1-0.20201221184100-40c3f864532b h1:bl83uNPDo/D13F6lJLed1AhyG1xF0WQZbWlH/WdVKUY=
 github.com/emersion/go-message v0.14.1-0.20201221184100-40c3f864532b/go.mod h1:N1JWdZQ2WRUalmdHAX308CWBq747VJ8oUorFI3VCBwU=
+github.com/emersion/go-message v0.14.1 h1:j3rj9F+7VtXE9c8P5UHBq8FTHLW/AjnmvSRre6AHoYI=
+github.com/emersion/go-message v0.14.1/go.mod h1:N1JWdZQ2WRUalmdHAX308CWBq747VJ8oUorFI3VCBwU=
 github.com/emersion/go-sasl v0.0.0-20200509203442-7bfe0ed36a21 h1:OJyUGMJTzHTd1XQp98QTaHernxMYzRaOasRir9hUlFQ=
 github.com/emersion/go-sasl v0.0.0-20200509203442-7bfe0ed36a21/go.mod h1:iL2twTeMvZnrg54ZoPDNfJaJaqy0xIQFuBdrLsmspwQ=
 github.com/emersion/go-smtp v0.14.0 h1:RYW203p+EcPjL8Z/ZpT9lZ6iOc8MG1MQzEx1UKEkXlA=
