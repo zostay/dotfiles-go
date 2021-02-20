@@ -1,11 +1,8 @@
 package mail
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"os"
 	"path"
 	"sort"
@@ -13,10 +10,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/araddon/dateparse"
-	"github.com/emersion/go-message"
-	_ "github.com/emersion/go-message/charset"
-	"github.com/emersion/go-message/mail"
+	"github.com/zostay/go-addr/pkg/addr"
+	"github.com/zostay/go-email/pkg/email/mime"
 
 	"github.com/zostay/dotfiles-go/internal/dotfiles"
 	"github.com/zostay/dotfiles-go/internal/xtrings"
@@ -34,34 +29,10 @@ var (
 )
 
 var (
-	brokenStarts map[byte][]brokenFix
-
-	fixes = []brokenFix{
-		{[]byte("Content-Transfer-Encoding: 8-bit"),
-			[]byte("Content-Transfer-Encoding: 8bit")},
-		{[]byte("Content-Type: text/html; charset=\"ascii\""),
-			[]byte("Content-Type: text/html; charset=\"utf-8\"")},
-	}
-
 	FromEmailAddress AddressList
 )
 
-type brokenFix struct {
-	broken []byte
-	fix    []byte
-}
-
 func init() {
-	brokenStarts = make(map[byte][]brokenFix)
-	for _, bf := range fixes {
-		c := bf.broken[0]
-		if ks, ok := brokenStarts[c]; ok {
-			brokenStarts[c] = append(ks, bf)
-		} else {
-			brokenStarts[c] = []brokenFix{bf}
-		}
-	}
-
 	FromEmailAddress = make(AddressList, 1)
 	FromEmailAddress[0] = &Address{
 		Name:    FromName,
@@ -70,119 +41,27 @@ func init() {
 }
 
 type Message struct {
-	r Opener
-	h *mail.Header
+	r Slurper
+	m *mime.Message
 }
 
-func NewMessage(r Opener) *Message {
+func NewMessage(r Slurper) *Message {
 	return &Message{r: r}
 }
 
 func NewMailDirMessage(key, flags, rd string, folder *MailDirFolder) *Message {
-	r := NewMailDirOpener(key, flags, rd, folder)
+	r := NewMailDirSlurper(key, flags, rd, folder)
 	return NewMessage(r)
 }
 
 func NewMailDirMessageWithStat(key, flags, rd string, folder *MailDirFolder, fi *os.FileInfo) *Message {
-	r := NewMailDirOpenerWithStat(key, flags, rd, folder, fi)
+	r := NewMailDirSlurperWithStat(key, flags, rd, folder, fi)
 	return NewMessage(r)
 }
 
 func NewFileMessage(filename string) *Message {
-	r := NewMessageOpener(filename)
+	r := NewMessageSlurper(filename)
 	return NewMessage(r)
-}
-
-func byteEqual(b1 []byte, b2 []byte) bool {
-	return strings.EqualFold(string(b1), string(b2))
-}
-
-func fixHeadersReader(r io.Reader) (io.Reader, error) {
-	bs, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
-
-	var (
-		os       bytes.Buffer
-		lb       byte
-		ff       bytes.Buffer
-		ffEnable = true
-	)
-
-ByteLoop:
-	for i := 0; len(bs) > 0; i++ {
-		b := bs[0]
-
-		bfs, ok := brokenStarts[b]
-		if ok && (i == 0 || lb == '\r' || lb == '\n') {
-			for _, bf := range bfs {
-				if len(bs) >= len(bf.broken) && byteEqual(bs[0:len(bf.broken)], bf.broken) {
-					os.Write(bf.fix)
-					lb = bs[len(bf.broken)-1]
-					bs = bs[len(bf.broken):]
-					continue ByteLoop
-				}
-			}
-		}
-
-		// Watch for weird unfolded lines and fold them. For example,
-		//
-		// To: <address@foo
-		// micrsoftexchangesux.com>
-		//
-		// is something I've seen in the wild.
-		//
-		// This looks for a line that starts with text. If it encounters a colon
-		// at some point, then we assume it's a header and move on. If it
-		// encounters a newline before the header, it assumes a bad fold, adds a
-		// space to the front and writes out the accumulated buffer and then we
-		// move on.
-		if ffEnable && lb == '\n' && b == '\n' {
-			// watch for the first blank line, signaling end of header
-			ffEnable = false
-			// os.WriteString("---- STOPPING ----\n\r")
-		}
-		if ffEnable && ff.Len() == 0 && (i == 0 || lb == '\r' || lb == '\n') && (b != ' ' && b != '\t') {
-			ff.WriteByte(b)
-			lb = b
-			bs = bs[1:]
-			continue ByteLoop
-		}
-
-		if ff.Len() > 0 {
-			if b == ':' {
-				os.Write(ff.Bytes())
-				os.WriteByte(b)
-				ff.Truncate(0)
-
-				lb = b
-				bs = bs[1:]
-				continue ByteLoop
-			} else if b == '\r' || b == '\n' {
-				os.WriteString("        ")
-				os.Write(ff.Bytes())
-				ff.Truncate(0)
-				os.WriteByte(b)
-
-				lb = b
-				bs = bs[1:]
-				continue ByteLoop
-			} else {
-				ff.WriteByte(b)
-
-				lb = b
-				bs = bs[1:]
-				continue ByteLoop
-			}
-		}
-
-		lb = b
-		bs = bs[1:]
-		os.WriteByte(b)
-	}
-
-	return &os, err
 }
 
 func (m *Message) Filename() string {
@@ -193,118 +72,40 @@ func (m *Message) Stat() (os.FileInfo, error) {
 	return m.r.Stat()
 }
 
-func retryEmailEntity(r io.ReadSeeker) (io.Reader, error) {
-	_, err := r.Seek(0, 0)
+func (m *Message) EmailMessage() (*mime.Message, error) {
+	if m.m != nil {
+		return m.m, nil
+	}
+
+	bs, err := m.r.Slurp()
 	if err != nil {
 		return nil, err
 	}
 
-	return fixHeadersReader(r)
-}
-
-type fc struct{}
-
-func (fc) Close() error { return nil }
-
-func (m *Message) EmailEntity() (io.Closer, *message.Entity, error) {
-	r, err := m.Reader()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var rc io.Closer = r
-	e, err := message.Read(r)
-	if err != nil {
-		// try to fix the email entity read
-		fr, ierr := retryEmailEntity(r)
-		// panic(string(fr.(*bytes.Buffer).Bytes()))
-		if ierr == nil { // so far so good
-			e, ierr = message.Read(fr)
-			if ierr == nil {
-				rc = fc{}
-			} else { // still failed
-				r.Close()
-				f := m.r.Filename()
-				return nil, nil, fmt.Errorf("unable to parse email entity for mail %q: %w", f, err)
-			}
-		}
-	}
-
-	return rc, e, nil
-}
-
-func (m *Message) EmailReader() (io.Closer, *mail.Reader, error) {
-	c, e, err := m.EmailEntity()
-	if err != nil {
-		return nil, nil, err
-	} else {
-		m := mail.NewReader(e)
-		return c, m, nil
-	}
-}
-
-func (m *Message) EmailHeader() (*mail.Header, error) {
-	if m.h != nil {
-		return m.h, nil
-	}
-
-	c, msg, err := m.EmailReader()
-	if err != nil {
-		return nil, err
-	} else {
-		defer c.Close()
-		m.h = &msg.Header
-		return &msg.Header, nil
-	}
+	m.m, err = mime.Parse(bs)
+	return m.m, err
 }
 
 func (m *Message) Raw() ([]byte, error) {
-	r, err := m.Reader()
-	if err != nil {
-		return []byte{}, err
-	}
-
-	defer r.Close()
-
-	return ioutil.ReadAll(r)
-}
-
-func (m *Message) Reader() (ReadSeekCloser, error) {
-	return m.r.Open()
+	return m.r.Slurp()
 }
 
 func (m *Message) Date() (time.Time, error) {
-	var (
-		t   time.Time
-		err error
-	)
-
-	h, err := m.EmailHeader()
+	mm, err := m.EmailMessage()
 	if err != nil {
 		return time.Time{}, err
 	}
 
-	t, err = h.Date()
-	if err != nil {
-		hd := h.Get("Date")
-		t, err = dateparse.ParseAny(hd)
-		if err != nil {
-			return t, fmt.Errorf("unable to parse Date header %q: %w", h.Get("Date"), err)
-		}
-
-		return t, nil
-	}
-
-	return t, nil
+	return mm.HeaderDate()
 }
 
 func (m *Message) Keywords() ([]string, error) {
-	h, err := m.EmailHeader()
+	mm, err := m.EmailMessage()
 	if err != nil {
-		return []string{}, err
+		return nil, err
 	}
 
-	sk := h.Get("Keywords")
+	sk := mm.HeaderGet("Keywords")
 	ks := strings.FieldsFunc(sk, func(c rune) bool {
 		return unicode.IsSpace(c) || c == ','
 	})
@@ -329,12 +130,12 @@ func (m *Message) KeywordsSet() (km map[string]struct{}, err error) {
 }
 
 func (m *Message) HasNonconformingKeywords() (bool, error) {
-	h, err := m.EmailHeader()
+	mm, err := m.EmailMessage()
 	if err != nil {
 		return false, err
 	}
 
-	sk := h.Get("Keywords")
+	sk := mm.HeaderGet("Keywords")
 	where := strings.IndexFunc(sk, func(c rune) bool {
 		return unicode.IsLetter(c) || unicode.IsNumber(c) || c == '_' || c == '-' || c == '.' || c == '/'
 	})
@@ -378,12 +179,15 @@ func (m *Message) CleanupKeywords() error {
 		return err
 	}
 
-	h, err := m.EmailHeader()
+	h, err := m.EmailMessage()
 	if err != nil {
 		return err
 	}
 
-	h.Set("Keywords", strings.Join(ks, " "))
+	err = h.HeaderSet("Keywords", strings.Join(ks, " "))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -410,7 +214,7 @@ func (m *Message) AddKeyword(names ...string) error {
 }
 
 func (m *Message) updateKeywords(km map[string]struct{}) error {
-	h, err := m.EmailHeader()
+	mm, err := m.EmailMessage()
 	if err != nil {
 		return err
 	}
@@ -422,7 +226,10 @@ func (m *Message) updateKeywords(km map[string]struct{}) error {
 
 	sort.Strings(ks)
 
-	h.Set("Keywords", strings.Join(ks, ", "))
+	err = mm.HeaderSet("Keywords", strings.Join(ks, ", "))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -448,105 +255,22 @@ func (m *Message) RemoveKeyword(names ...string) error {
 	return m.updateKeywords(km)
 }
 
-func (m *Message) AddressList(key string) (AddressList, error) {
-	var addr []*mail.Address
-
-	h, err := m.EmailHeader()
+func (m *Message) AddressList(key string) (addr.AddressList, error) {
+	mm, err := m.EmailMessage()
 	if err != nil {
-		return addr, err
+		return nil, err
 	}
 
-	addr, err = h.AddressList(key)
-	if err != nil {
-		// Email is complicated. The net/mail parser is fairly naive, but even a
-		// complete parser with full obsolete production support (which net/mail
-		// lacks as of this writing) is not going to be able to parse the email
-		// in many cases. This heuristic attempts to catch the oddities.
-		hal := h.Get(key)
-
-		addr := fallbackAddressList(hal)
-		if addr == nil {
-			return addr, fmt.Errorf("unable to read address list of header %q: %w", key, err)
-		}
-	}
-
-	return addr, nil
-}
-
-func fallbackAddressList(h string) []*mail.Address {
-	// split by comma
-	mhs := strings.FieldsFunc(h, func(c rune) bool {
-		return c == ','
-	})
-
-	addr := make([]*mail.Address, 0, len(mhs))
-	for _, mh := range mhs {
-		mb := fallbackAddress(mh)
-		if mb != nil {
-			addr = append(addr, mb)
-		}
-	}
-
-	if len(addr) == 0 {
-		addr = nil
-	}
-
-	return addr
-}
-
-func fallbackAddress(h string) *mail.Address {
-	in := make([]int, 0, len(h))
-	out := make([]int, 0, len(h))
-	remove := make([]int, 0, len(h))
-	for i, c := range h {
-		if c == '(' {
-			in = append(in, i)
-		} else if len(in) > 0 && c == ')' {
-			out = append(out, i)
-		}
-
-		if len(in) > 0 && len(in) == len(out) {
-			remove = append(remove, in[0], out[len(out)-1])
-			in = make([]int, 0, len(h))
-			out = make([]int, 0, len(h))
-		}
-	}
-
-	for i := len(remove); i > 0; i -= 2 {
-		e := remove[i-1]
-		s := remove[i-2]
-		h = h[:s] + h[e:]
-	}
-
-	// guess using <> brackets
-	if la := strings.IndexRune(h, '<'); la > -1 {
-		if ra := strings.IndexRune(h, '>'); ra > la {
-			return &mail.Address{
-				Address: h[la+1 : ra],
-			}
-		}
-	}
-
-	// guess using the thing that contains an @
-	fs := strings.Fields(h)
-	for _, f := range fs {
-		if strings.ContainsRune(f, '@') {
-			return &mail.Address{
-				Address: f,
-			}
-		}
-	}
-
-	return nil
+	return mm.HeaderGetAddressList(key)
 }
 
 func (m *Message) Subject() (string, error) {
-	h, err := m.EmailHeader()
+	mm, err := m.EmailMessage()
 	if err != nil {
 		return "", err
 	}
 
-	return h.Subject()
+	return mm.HeaderGet("Subject"), nil
 }
 
 func (m *Message) Folder() (string, error) {
@@ -791,13 +515,13 @@ var (
 	}
 )
 
-func testAddress(dbgh, dbgt, expect string, got []*mail.Address, err error) (testResult, error) {
+func testAddress(dbgh, dbgt, expect string, got addr.AddressList, err error) (testResult, error) {
 	if len(got) == 0 {
 		return testResult{false, fmt.Sprintf("message is missing [%s] header", dbgh)}, err
 	}
 
-	for _, addr := range got {
-		if strings.EqualFold(addr.Address, expect) {
+	for _, mb := range got.Flatten() {
+		if strings.EqualFold(mb.Address(), expect) {
 			return testResult{true, fmt.Sprintf("message header [%s] matches [%s] test: [%s]", dbgh, dbgt, expect)}, err
 		}
 	}
@@ -805,15 +529,13 @@ func testAddress(dbgh, dbgt, expect string, got []*mail.Address, err error) (tes
 	return testResult{false, fmt.Sprintf("message header [%s] does not match [%s] test: [%s]", dbgh, dbgt, expect)}, err
 }
 
-func testDomain(dbgh, dbgt, expect string, got []*mail.Address, err error) (testResult, error) {
+func testDomain(dbgh, dbgt, expect string, got addr.AddressList, err error) (testResult, error) {
 	if len(got) == 0 {
 		return testResult{false, fmt.Sprintf("message is missing [%s] header", dbgh)}, err
 	}
 
-	for _, addr := range got {
-		idx := strings.IndexRune(addr.Address, '@')
-		d := addr.Address[idx:]
-		if strings.EqualFold(d, expect) {
+	for _, mb := range got.Flatten() {
+		if strings.EqualFold(mb.Domain(), expect) {
 			return testResult{true, fmt.Sprintf("message header [%s] matches [%s] domain test: [%s]", dbgh, dbgt, expect)}, err
 		}
 	}
@@ -834,7 +556,7 @@ func (m *Message) MoveTo(root string, name string) error {
 	}
 
 	destFolder := NewMailDirFolder(root, name)
-	err := m.r.(*MailDirOpener).MoveTo(destFolder)
+	err := m.r.(*MailDirSlurper).MoveTo(destFolder)
 	if err != nil {
 		return err
 	}
@@ -843,26 +565,19 @@ func (m *Message) MoveTo(root string, name string) error {
 }
 
 func (m *Message) Save() error {
-	h, err := m.EmailHeader()
+	mm, err := m.EmailMessage()
 	if err != nil {
 		return err
 	}
 
-	c, e, err := m.EmailEntity()
-	if err != nil {
-		return err
-	}
-	defer c.Close()
-
-	w, err := m.r.(*MailDirOpener).Replace()
+	w, err := m.r.(*MailDirSlurper).Replace()
 	if err != nil {
 		return err
 	}
 	defer w.Close()
 
 	//fmt.Println("START WRITING")
-	e.Header = h.Header
-	err = e.WriteTo(w)
+	_, err = w.Write(mm.Bytes())
 	//fmt.Println("END WRITING")
 	if err != nil {
 		return fmt.Errorf("unable to save %q: %w", m.Filename(), err)

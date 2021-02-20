@@ -13,6 +13,7 @@ import (
 	"github.com/emersion/go-message/mail"
 	"github.com/emersion/go-sasl"
 	"github.com/emersion/go-smtp"
+	"github.com/zostay/go-email/pkg/email/mime"
 )
 
 const (
@@ -20,11 +21,10 @@ const (
 )
 
 func (m *Message) ForwardReader(to AddressList) (*bytes.Buffer, error) {
-	c, r, err := m.EmailReader()
+	mm, err := m.EmailMessage()
 	if err != nil {
 		return nil, err
 	}
-	defer c.Close()
 
 	var (
 		h   mail.Header
@@ -37,10 +37,7 @@ func (m *Message) ForwardReader(to AddressList) (*bytes.Buffer, error) {
 	h.SetAddressList("X-Forwarded-To", to)
 	h.SetAddressList("X-Forwarded-For", FromEmailAddress)
 
-	fwdSubject, err := r.Header.Subject()
-	if err != nil {
-		return nil, err
-	}
+	fwdSubject := mm.HeaderGet("Subject")
 
 	h.SetSubject("Fwd: " + fwdSubject)
 
@@ -74,28 +71,25 @@ func (m *Message) ForwardReader(to AddressList) (*bytes.Buffer, error) {
 		return nil, fmt.Errorf("error create inline message: %w", err)
 	}
 
-	for {
-		pr, err := r.NextPart()
-		if err == io.EOF {
-			break
-		}
-
-		switch ph := pr.Header.(type) {
-		case *mail.InlineHeader:
-			ct, ps, err := ph.ContentType()
+	err = mm.WalkSingleParts(func(m *mime.Message) error {
+		cd := mm.HeaderContentDisposition()
+		if cd == "inline" {
+			mt, err := mm.HeaderGetMediaType("Content-Type")
 			if err != nil {
-				return nil, err
+				return err
 			}
 
+			ct := mt.MediaType()
 			pfh := mail.InlineHeader{}
-			pfh.SetContentType(ct, ps)
+			pfh.SetContentType(ct, mt.Parameters())
 
 			pw, err := ip.CreatePart(pfh)
 			if err != nil {
-				return nil, fmt.Errorf("error creating inline part: %w", err)
+				return fmt.Errorf("error creating inline part: %w", err)
 			}
 
-			if ct == "text/plain" {
+			switch ct {
+			case "text/plain":
 				_, _ = io.WriteString(pw, ForwardedMessagePrefix)
 				_, _ = io.WriteString(pw, "\nFrom: "+AddressListString(fwdFromList))
 				_, _ = io.WriteString(pw, "\nDate: "+fwdDate.Format(time.RFC1123))
@@ -105,7 +99,7 @@ func (m *Message) ForwardReader(to AddressList) (*bytes.Buffer, error) {
 					_, _ = io.WriteString(pw, "\nCc: "+AddressListString(fwdCcList))
 				}
 				_, _ = io.WriteString(pw, "\n\n")
-			} else if ct == "text/html" {
+			case "text/html":
 				_, _ = io.WriteString(pw, "<div><br></div><div><br><div>")
 				_, _ = io.WriteString(pw, ForwardedMessagePrefix)
 				_, _ = io.WriteString(pw, "<br>From: "+AddressListHTML(fwdFromList))
@@ -118,26 +112,33 @@ func (m *Message) ForwardReader(to AddressList) (*bytes.Buffer, error) {
 				_, _ = io.WriteString(pw, "<br></div><br><br>")
 			}
 
-			_, _ = io.Copy(pw, pr.Body)
+			_, _ = pw.Write(mm.Content())
 			pw.Close()
-
-		case *mail.AttachmentHeader:
-			ct, ps, err := ph.ContentType()
+		} else {
+			mt, err := mm.HeaderGetMediaType("Content-Type")
 			if err != nil {
-				return nil, err
+				return err
 			}
 
+			ct := mt.MediaType()
+			ps := mt.Parameters()
 			pfh := mail.AttachmentHeader{}
 			pfh.SetContentType(ct, ps)
 
 			pw, err := w.CreateAttachment(pfh)
 			if err != nil {
-				return nil, fmt.Errorf("error creating attachment: %w", err)
+				return fmt.Errorf("error creating attachment: %w", err)
 			}
 
-			_, _ = io.Copy(pw, pr.Body)
+			_, _ = pw.Write(mm.Content())
 			pw.Close()
 		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	if ip != nil {
@@ -152,12 +153,12 @@ func (m *Message) ForwardReader(to AddressList) (*bytes.Buffer, error) {
 func (m *Message) ForwardTo(tos ...*Address) error {
 	auth := sasl.NewPlainClient("", SASLUser, SASLPass)
 
-	h, err := m.EmailHeader()
+	mm, err := m.EmailMessage()
 	if err != nil {
 		return err
 	}
 
-	zfw := h.Get("X-Zostay-Forwarded")
+	zfw := mm.HeaderGet("X-Zostay-Forwarded")
 	zfwm := make(map[string]struct{})
 	zfws := make([]string, 0, len(tos))
 	if zfw != "" {
@@ -195,7 +196,10 @@ func (m *Message) ForwardTo(tos ...*Address) error {
 
 	sort.Strings(zfws)
 
-	m.h.Set("X-Zostay-Forwarded", strings.Join(zfws, ", "))
+	err = mm.HeaderSet("X-Zostay-Forwarded", strings.Join(zfws, ", "))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
