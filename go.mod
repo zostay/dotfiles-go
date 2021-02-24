@@ -4,6 +4,8 @@ go 1.14
 
 replace github.com/zostay/go-email => ../go-email
 
+replace github.com/zostay/go-addr => ../go-addr
+
 require (
 	github.com/ansd/lastpass-go v0.1.1
 	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4

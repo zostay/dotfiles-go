@@ -11,6 +11,8 @@ import (
 )
 
 var (
+	// labelBoxes is the map between Gmail's keywords and the special IMAP
+	// folders synced by offlineimap
 	labelBoxes = map[string]string{
 		"\\Inbox":     "INBOX",
 		"\\Trash":     "gmail.Trash",
@@ -19,10 +21,14 @@ var (
 		"\\Starred":   "gmail.Starred",
 		"\\Draft":     "gmail.Drafts",
 	}
+
+	// boxLabels is the inversion of labelBoxes
 	boxLabels map[string]string
 
+	// DefaultMailDir is the usual maildir
 	DefaultMailDir = path.Join(dotfiles.HomeDir, "Mail")
 
+	// SkipFolder lists folders that are never filtered.
 	SkipFolder = map[string]struct{}{
 		"gmail.Spam":      struct{}{},
 		"gmail.Draft":     struct{}{},
@@ -38,18 +44,21 @@ func init() {
 	}
 }
 
+// Filter represents the tools that parse and understand mail rules and filter
+// folders and messages.
 type Filter struct {
-	MailRoot string
-	Rules    CompiledRules
+	MailRoot string        // maildir to filter
+	Rules    CompiledRules // the compiled filter rules
 
-	LimitRecent time.Duration
+	LimitRecent time.Duration // if set, only message files newer than this will be filtered
 
-	Debug  int
-	DryRun bool
+	Debug  int  // set the debug level, higher numbers mean even more verbose logging
+	DryRun bool // when set, no changes will be made
 
-	AllowSendingEmail bool
+	AllowSendingEmail bool // unless set, no email forwarding will be performed
 }
 
+// NewFilter loads the rules and prepares the system for message filtering.
 func NewFilter(root string) (*Filter, error) {
 	f, err := LoadRules()
 	if err != nil {
@@ -62,18 +71,24 @@ func NewFilter(root string) (*Filter, error) {
 	}, nil
 }
 
+// LimitFilterToRecent sets the LimitRecent time. When set and filtering
+// folders, only messages with a modification time newer than LimitRecent will
+// be filtered.
 func (fi *Filter) LimitFilterToRecent(limit time.Duration) {
 	fi.LimitRecent = limit
 }
 
+// LimitSince returns the LimitSince setting set by LimitFilterToRecent.
 func (fi *Filter) LimitSince() time.Time {
 	return time.Now().Add(-fi.LimitRecent)
 }
 
+// folder constructs a NewMailDirFolder for the named folder in the mail root.
 func (fi *Filter) folder(folder string) *MailDirFolder {
 	return NewMailDirFolder(fi.MailRoot, folder)
 }
 
+// Messages returns all the messages that should be filtered in that folder.
 func (fi *Filter) Messages(folder string) ([]*Message, error) {
 	var ms []*Message
 
@@ -108,8 +123,11 @@ func (fi *Filter) Messages(folder string) ([]*Message, error) {
 	return ms, nil
 }
 
+// ActionsSummary is the summary of actions taken while filtering to display to
+// the user.
 type ActionsSummary map[string]int
 
+// AllFolders lists all the maildir folders in the mail root.
 func (fi *Filter) AllFolders() ([]string, error) {
 	var folderNames []string
 
@@ -137,6 +155,8 @@ func (fi *Filter) AllFolders() ([]string, error) {
 	return folderNames, nil
 }
 
+// LabelMessages applies filters to all applicable messages in the given list of
+// folders.
 func (fi *Filter) LabelMessages(onlyFolders []string) (ActionsSummary, error) {
 	actions := make(ActionsSummary)
 
@@ -183,6 +203,7 @@ func (fi *Filter) LabelMessages(onlyFolders []string) (ActionsSummary, error) {
 	return actions, nil
 }
 
+// LabelFolderMessages performs filtering for a single maildir.
 func (fi *Filter) LabelFolderMessages(
 	actions ActionsSummary,
 	folder string,
@@ -225,159 +246,7 @@ func (fi *Filter) LabelFolderMessages(
 	return nil
 }
 
-var (
-	UnwantedFolderSuffix = []string{","}
-	UnwantedFolderPrefix = []string{"+", "\\"}
-	UnwantedFolder       = []string{"[", "]", "Drafts", "Home_School", "Network", "Pseudo-Junk.Social", "Pseudo-Junk.Social_Network", "Social Network", "OtherJunk"}
-	UnwantedKeyword      = map[string][]string{
-		"JunkSocial": {"Network", "Pseudo-Junk.Social", "Pseudo-Junk/Social", "Psuedo-Junk/Social_Network", "Pseudo-Junk.Social_Network"},
-		"Teamwork":   {"Discussion"},
-		"JunkOther":  {"OtherJunk"},
-	}
-)
-
-func isUnwanted(folder string) bool {
-	for _, us := range UnwantedFolderSuffix {
-		if strings.HasSuffix(folder, us) {
-			return true
-		}
-	}
-
-	for _, up := range UnwantedFolderPrefix {
-		if strings.HasPrefix(folder, up) {
-			return true
-		}
-	}
-
-	for _, uf := range UnwantedFolder {
-		if folder == uf {
-			return true
-		}
-	}
-
-	return false
-}
-
-func hasUnwantedKeyword(msg *Message) ([]string, string, error) {
-	for tok, uks := range UnwantedKeyword {
-		for _, uk := range uks {
-			unwanted, err := msg.HasKeyword(uk)
-			if unwanted || err != nil {
-				return uks, tok, err
-			}
-		}
-	}
-
-	return []string{}, "", nil
-}
-
-func (fi *Filter) Vacuum(logf func(fmt string, opts ...interface{})) error {
-	folders, err := fi.AllFolders()
-	if err != nil {
-		return err
-	}
-
-	for _, folder := range folders {
-		if isUnwanted(folder) {
-			logf("Droppping %s", folder)
-
-			msgs, err := fi.Messages(folder)
-			if err != nil {
-				return err
-			}
-
-			for _, msg := range msgs {
-				other, err := msg.BestAlternateFolder()
-				if err != nil {
-					return err
-				}
-
-				err = msg.MoveTo(fi.MailRoot, other)
-				if err != nil {
-					return err
-				}
-
-				err = msg.RemoveKeyword(other)
-				if err != nil {
-					return err
-				}
-
-				err = msg.Save()
-				if err != nil {
-					return err
-				}
-
-				logf(" -> Moved %s to %s", folder, other)
-			}
-
-			deadFolder := path.Join(fi.MailRoot, folder)
-			for _, sd := range []string{"new", "cur", "tmp"} {
-				err = os.Remove(path.Join(deadFolder, sd))
-				if err != nil {
-					logf("WARNING: cannot delete %s/%s: %+v", deadFolder, sd, err)
-				}
-			}
-			err = os.Remove(deadFolder)
-			if err != nil {
-				logf("WARNING: cannot delete %s: %+v", deadFolder, err)
-			}
-		} else {
-			logf("Searching %s for broken Keywords.", folder)
-
-			msgs, err := fi.Messages(folder)
-			if err != nil {
-				return err
-			}
-
-			for _, msg := range msgs {
-				change := 0
-
-				// Cleanup unwanted chars in keywords
-				nonconforming, err := msg.HasNonconformingKeywords()
-				if err != nil {
-					return err
-				}
-				if nonconforming {
-					logf("Fixing non-conforming keywords.")
-					err := msg.CleanupKeywords()
-					if err != nil {
-						return err
-					}
-					change++
-				}
-
-				// Something went wrong somewhere
-				unwanted, wanted, err := hasUnwantedKeyword(msg)
-				if err != nil {
-					return err
-				}
-				if len(unwanted) > 0 {
-					logf("Fixing (%s) to %s.", strings.Join(unwanted, ", "), wanted)
-					change++
-					err := msg.RemoveKeyword(unwanted...)
-					if err != nil {
-						return err
-					}
-
-					err = msg.AddKeyword(wanted)
-					if err != nil {
-						return err
-					}
-				}
-
-				if change > 0 {
-					err := msg.Save()
-					if err != nil {
-						return err
-					}
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
+// ApplyRule applies a single mail filter rule to a single mail message.
 func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 	var (
 		fail    string
