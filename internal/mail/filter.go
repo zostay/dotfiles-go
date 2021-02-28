@@ -88,6 +88,17 @@ func (fi *Filter) folder(folder string) *MailDirFolder {
 	return NewMailDirFolder(fi.MailRoot, folder)
 }
 
+// Message returns a single message in a single folder.
+func (fi *Filter) Message(folder, fn string) (*Message, error) {
+	f := fi.folder(folder)
+	m, err := f.Message(fn)
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
+}
+
 // Messages returns all the messages that should be filtered in that folder.
 func (fi *Filter) Messages(folder string) ([]*Message, error) {
 	var ms []*Message
@@ -109,7 +120,7 @@ func (fi *Filter) Messages(folder string) ([]*Message, error) {
 		if fi.LimitRecent > 0 {
 			info, err := m.Stat()
 			if err != nil {
-				return ms, fmt.Errorf("unable to stat %s: %w", m.Filename(), err)
+				return ms, fmt.Errorf("unable to stat %q: %w", m.Filename(), err)
 			}
 
 			if info.ModTime().Before(since) {
@@ -122,10 +133,6 @@ func (fi *Filter) Messages(folder string) ([]*Message, error) {
 
 	return ms, nil
 }
-
-// ActionsSummary is the summary of actions taken while filtering to display to
-// the user.
-type ActionsSummary map[string]int
 
 // AllFolders lists all the maildir folders in the mail root.
 func (fi *Filter) AllFolders() ([]string, error) {
@@ -155,6 +162,60 @@ func (fi *Filter) AllFolders() ([]string, error) {
 	return folderNames, nil
 }
 
+// RulesForFolder returns all the rules that apply to the given folder. The
+// second return value is a boolean indicating whether this folder has any rules
+// at all.
+func (fi *Filter) RulesForFolder(f string) (CompiledRules, bool) {
+	folders := fi.Rules.FolderRules()
+
+	var (
+		gr  CompiledRules
+		gok bool
+	)
+	if gr, gok = folders[""]; !gok {
+		gr = CompiledRules{}
+	}
+
+	var (
+		fr CompiledRules
+		ok bool
+	)
+	if fr, ok = folders[f]; ok || gok {
+		if !ok {
+			fr = make(CompiledRules, 0, len(gr))
+		}
+
+		fr = append(fr, gr...)
+
+		return fr, true
+	}
+
+	return gr, gok
+}
+
+// LabelMessage applies filters to a specific message.
+func (fi *Filter) LabelMessage(folder, fn string) (ActionsSummary, error) {
+	actions := make(ActionsSummary)
+
+	if fr, ok := fi.RulesForFolder(folder); ok {
+		msg, err := fi.Message(folder, fn)
+		if err != nil {
+			return actions, err
+		}
+
+		as, err := fi.ApplyRules(msg, fr)
+		if err != nil {
+			return actions, err
+		}
+
+		for _, a := range as {
+			actions[a]++
+		}
+	}
+
+	return actions, nil
+}
+
 // LabelMessages applies filters to all applicable messages in the given list of
 // folders.
 func (fi *Filter) LabelMessages(onlyFolders []string) (ActionsSummary, error) {
@@ -171,28 +232,8 @@ func (fi *Filter) LabelMessages(onlyFolders []string) (ActionsSummary, error) {
 		whichFolders = onlyFolders
 	}
 
-	folders := fi.Rules.FolderRules()
-
-	var (
-		gr  CompiledRules
-		gok bool
-	)
-	if gr, gok = folders[""]; !gok {
-		gr = CompiledRules{}
-	}
-
 	for _, f := range whichFolders {
-		var (
-			fr CompiledRules
-			ok bool
-		)
-		if fr, ok = folders[f]; ok || gok {
-			if !ok {
-				fr = make(CompiledRules, 0, len(gr))
-			}
-
-			fr = append(fr, gr...)
-
+		if fr, ok := fi.RulesForFolder(f); ok {
 			err := fi.LabelFolderMessages(actions, f, fr)
 			if err != nil {
 				return actions, err
@@ -231,19 +272,32 @@ func (fi *Filter) LabelFolderMessages(
 			continue
 		}
 
-		for _, cr := range rules {
-			as, err := fi.ApplyRule(msg, cr)
-			if err != nil {
-				return err
-			}
+		as, err := fi.ApplyRules(msg, rules)
+		if err != nil {
+			return err
+		}
 
-			for _, a := range as {
-				actions[a]++
-			}
+		for _, a := range as {
+			actions[a]++
 		}
 	}
 
 	return nil
+}
+
+// ApplyRules applies all the rules to a single mail message.
+func (fi *Filter) ApplyRules(msg *Message, rules []*CompiledRule) ([]string, error) {
+	actions := make([]string, 0)
+	for _, cr := range rules {
+		as, err := fi.ApplyRule(msg, cr)
+		if err != nil {
+			return actions, err
+		}
+
+		actions = append(actions, as...)
+	}
+
+	return actions, nil
 }
 
 // ApplyRule applies a single mail filter rule to a single mail message.
@@ -269,9 +323,9 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 		}
 	}
 
-	if fail != "" {
-		return actions, nil
-	}
+	// if fail != "" {
+	// 	return actions, nil
+	// }
 
 	tests := 0
 	for _, applies := range ruleTests {
@@ -290,12 +344,23 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 
 	// MOAR DEBUGGING
 	if fi.Debug > 2 && fail != "" {
-		fmt.Fprintf(os.Stderr, "FAILED: %s.\n", fail)
+		cp.Fcolor(os.Stderr,
+			"fail", "✗ FAILED",
+			"meh", fmt.Sprintf(": %s.\n", fail),
+		)
 	}
 
 	// AND EVEN MOAR DEBUGGING
 	if fi.Debug > 2 || (fi.Debug > 1 && (len(passes) > 0 && fail == "")) {
-		fmt.Fprintf(os.Stderr, "PASSES: %s.\n", strings.Join(passes, ", "))
+		pass := "base"
+		if fail == "" && tests > 0 {
+			pass = "pass"
+		}
+
+		cp.Fcolor(os.Stderr,
+			pass, "✔ PASSES",
+			"base", fmt.Sprintf(": %s.\n", cp.Join("base", passes, ", ")),
+		)
 	}
 
 	if fail != "" {
@@ -311,7 +376,12 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 	debugLogOp := func(op string, m *Message, ts []string) {
 		if fi.Debug > 0 {
 			f := m.r.Filename()
-			fmt.Fprintf(os.Stderr, "%s %s : %s\n", op, f, strings.Join(ts, ", "))
+			cp.Fcolor(os.Stderr,
+				strings.ToLower(op), op,
+				"file", fmt.Sprintf(" %s ", f),
+				"action", ": ",
+				"value", fmt.Sprintf("%s\n", strings.Join(ts, ", ")),
+			)
 		}
 	}
 

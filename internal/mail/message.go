@@ -10,6 +10,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/fatih/color"
 	"github.com/zostay/go-addr/pkg/addr"
 	"github.com/zostay/go-email/pkg/email/mime"
 
@@ -30,6 +31,10 @@ var (
 
 var (
 	FromEmailAddress AddressList
+)
+
+var (
+	cHeader = color.New(color.FgMagenta).SprintfFunc()
 )
 
 func init() {
@@ -294,72 +299,122 @@ var (
 	skipTests = []skipTest{
 		func(m *Message, c *CompiledRule) (skipResult, error) {
 			if !c.IsLabeling() {
-				return skipResult{false, "not labeling"}, nil
+				return skipResult{false, cp.Scolor("base", "not labeling")}, nil
 			}
 
 			ok, err := m.HasKeyword(c.Label...)
 			if !ok {
-				return skipResult{false, fmt.Sprintf("needs labels [%s]", strings.Join(c.Label, ", "))}, err
+				return skipResult{false,
+					cp.Scolor(
+						"base", "needs labels ",
+						"label", fmt.Sprintf("%q", strings.Join(c.Label, ", ")),
+					),
+				}, err
 			}
 
-			return skipResult{true, fmt.Sprintf("already labeled [%s]", strings.Join(c.Label, ", "))}, err
+			return skipResult{true,
+				cp.Scolor(
+					"base", "already labeled ",
+					"label", fmt.Sprintf("%q", cp.Join("base", c.Label, ", ")),
+				),
+			}, err
 		},
 
 		func(m *Message, c *CompiledRule) (skipResult, error) {
 			if !c.IsClearing() {
-				return skipResult{false, "not clearing"}, nil
+				return skipResult{false, cp.Scolor("base", "not clearing")}, nil
 			}
 
 			ok, err := m.MissingKeyword(c.Clear...)
 			if !ok {
-				return skipResult{false, fmt.Sprintf("needs to lose labels [%s]", strings.Join(c.Clear, ", "))}, err
+				return skipResult{false,
+					cp.Scolor(
+						"base", "needs to lose labels ",
+						"label", fmt.Sprintf("%q", strings.Join(c.Clear, ", ")),
+					),
+				}, err
 			}
 
-			return skipResult{true, fmt.Sprintf("already lost labels [%s]", strings.Join(c.Clear, ", "))}, err
+			return skipResult{true,
+				cp.Scolor(
+					"base", "already lost labels ",
+					"label", fmt.Sprintf("%q", strings.Join(c.Clear, ", ")),
+				),
+			}, err
 		},
 
 		func(m *Message, c *CompiledRule) (skipResult, error) {
 			if !c.IsMoving() {
-				return skipResult{false, "not moving"}, nil
+				return skipResult{false, cp.Scolor("base", "not moving")}, nil
 			}
 
 			fn, err := m.Folder()
 			if c.Move != fn {
-				return skipResult{false, fmt.Sprintf("not yet in folder [%s]", c.Move)}, err
+				return skipResult{false,
+					cp.Scolor(
+						"base", "not yet in folder ",
+						"label", fmt.Sprintf("%q", c.Move),
+					),
+				}, err
 			}
 
-			return skipResult{true, fmt.Sprintf("already in folder [%s]", c.Move)}, err
+			return skipResult{true,
+				cp.Scolor(
+					"base", "already in folder ",
+					"label", fmt.Sprintf("%q", c.Move),
+				),
+			}, err
 		},
 
 		func(m *Message, c *CompiledRule) (skipResult, error) {
 			ok, err := m.HasKeyword("\\Starred")
 			if ok {
-				return skipResult{true, "do not modify \\Starred"}, err
+				return skipResult{true,
+					cp.Scolor(
+						"base", "do not modify ",
+						"label", fmt.Sprintf("%q", "\\Starred"),
+					),
+				}, err
 			}
 
-			return skipResult{false, "not \\Starred"}, err
+			return skipResult{false,
+				cp.Scolor(
+					"base", "not ",
+					"label", fmt.Sprintf("%q", "\\Starred"),
+				),
+			}, err
 		},
 	}
 
 	ruleTests = []ruleTest{
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if !c.HasOkayDate() {
-				return testResult{true, "no okay date"}, nil
+				return testResult{true, cp.Scolor("base", "no okay date")}, nil
 			}
 
 			(*tests)++
 
 			date, err := m.Date()
 			if date.Before(c.OkayDate) {
-				return testResult{true, fmt.Sprintf("message is older than okay date [%s]", c.OkayDate.Format(time.RFC3339))}, err
+				return testResult{true,
+					cp.Scolor(
+						"base", "message is older than okay date ",
+						"value", fmt.Sprintf("%q", c.OkayDate.Format(time.RFC3339)),
+					),
+				}, err
 			}
 
-			return testResult{false, fmt.Sprintf("message is newer than okay date [%s]", c.OkayDate.Format(time.RFC3339))}, err
+			return testResult{false,
+				cp.Scolor(
+					"base", "message is newer than okay date ",
+					"value", fmt.Sprintf("%q", c.OkayDate.Format(time.RFC3339)),
+				),
+			}, err
 		},
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.From == "" {
-				return testResult{true, "no from test"}, nil
+				return testResult{true, cp.Scolor("base", "no from test")}, nil
 			}
 
 			(*tests)++
@@ -370,7 +425,7 @@ var (
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.FromDomain == "" {
-				return testResult{true, "no from domain test"}, nil
+				return testResult{true, cp.Scolor("base", "no from domain test")}, nil
 			}
 
 			(*tests)++
@@ -381,7 +436,7 @@ var (
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.To == "" {
-				return testResult{true, "no to test"}, nil
+				return testResult{true, cp.Scolor("base", "no to test")}, nil
 			}
 
 			(*tests)++
@@ -392,7 +447,7 @@ var (
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.ToDomain == "" {
-				return testResult{true, "no to domain test"}, nil
+				return testResult{true, cp.Scolor("base", "no to domain test")}, nil
 			}
 
 			(*tests)++
@@ -403,7 +458,7 @@ var (
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.Sender == "" {
-				return testResult{true, "no sender test"}, nil
+				return testResult{true, cp.Scolor("base", "no sender test")}, nil
 			}
 
 			(*tests)++
@@ -414,7 +469,7 @@ var (
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.DeliveredTo == "" {
-				return testResult{true, "no delivered_to test"}, nil
+				return testResult{true, cp.Scolor("base", "no delivered_to test")}, nil
 			}
 
 			(*tests)++
@@ -425,122 +480,242 @@ var (
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.Subject == "" {
-				return testResult{true, "no exact subject test"}, nil
+				return testResult{true, cp.Scolor("base", "no exact subject test")}, nil
 			}
 
 			(*tests)++
 
 			subject, err := m.Subject()
 			if c.Subject != subject {
-				return testResult{false, fmt.Sprintf("message header [Subject] does not exactly match subject test: [%s]", c.Subject)}, err
+				return testResult{false,
+					cp.Scolor(
+						"base", "mesage header ",
+						"header", "\"Subject\"",
+						"base", " does not exactly match subject test: ",
+						"value", fmt.Sprintf("%q", c.Subject),
+					),
+				}, err
 			}
 
-			return testResult{true, fmt.Sprintf("message header [Subject] exactly matches subject test: [%s]", c.Subject)}, err
+			return testResult{true,
+				cp.Scolor(
+					"action", "message header ",
+					"header", "\"Subject\"",
+					"action", " exactly matches subject test: ",
+					"value", fmt.Sprintf("%q", c.Subject),
+				),
+			}, err
 		},
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.SubjectFold == "" {
-				return testResult{true, "no folded case subject test"}, nil
+				return testResult{true, cp.Scolor("base", "no folded case subject test")}, nil
 			}
 
 			(*tests)++
 
 			subject, err := m.Subject()
 			if !strings.EqualFold(c.SubjectFold, subject) {
-				return testResult{false, fmt.Sprintf("message header [Subject] does not match folded case of subject test: [%s]", c.SubjectFold)}, err
+				return testResult{false,
+					cp.Scolor(
+						"base", "message header ",
+						"header", "\"Subject\"",
+						"base", " does not match folded case of subject test: ",
+						"value", fmt.Sprintf("%q", c.SubjectFold),
+					),
+				}, err
 			}
 
-			return testResult{true, fmt.Sprintf("message header [Subject] matches folded case of subject test: [%s]", c.SubjectFold)}, err
+			return testResult{true,
+				cp.Scolor(
+					"action", "message header ",
+					"header", "\"Subject\"",
+					"action", " matches folded case of subject test: ",
+					"value", fmt.Sprintf("%q", c.SubjectFold),
+				),
+			}, err
 		},
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.SubjectContains == "" {
-				return testResult{true, "no subject contains test"}, nil
+				return testResult{true, cp.Scolor("base", "no subject contains test")}, nil
 			}
 
 			(*tests)++
 
 			subject, err := m.Subject()
 			if !strings.Contains(subject, c.SubjectContains) {
-				return testResult{false, fmt.Sprintf("message header [Subject] fails contains subject test: [%s]", c.SubjectContains)}, err
+				return testResult{false,
+					cp.Scolor(
+						"base", "message header ",
+						"header", "\"Subject\"",
+						"base", " fails contains subject test: ",
+						"value", fmt.Sprintf("%q", c.SubjectContains),
+					),
+				}, err
 			}
 
-			return testResult{true, fmt.Sprintf("message header [Subject] passes contains subject test: [%s]", c.SubjectContains)}, err
+			return testResult{true,
+				cp.Scolor(
+					"action", "message header ",
+					"header", "\"Subject\"",
+					"action", " passes contains subject test: ",
+					"value", fmt.Sprintf("%q", c.SubjectContains),
+				),
+			}, err
 		},
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.SubjectContainsFold == "" {
-				return testResult{true, "no subject contains subject folded case test"}, nil
+				return testResult{true, cp.Scolor("base", "no subject contains subject folded case test")}, nil
 			}
 
 			(*tests)++
 
 			subject, err := m.Subject()
 			if !xtrings.ContainsFold(subject, c.SubjectContainsFold) {
-				return testResult{false, fmt.Sprintf("message header [Subject] fails contains subject folded case test: [%s]", c.SubjectContainsFold)}, err
+				return testResult{false,
+					cp.Scolor(
+						"base", "message header ",
+						"header", "\"Subject\"",
+						"base", " fails contains subject folded case test: ",
+						"value", fmt.Sprintf("%q", c.SubjectContainsFold),
+					),
+				}, err
 			}
 
-			return testResult{true, fmt.Sprintf("message header [Subject] passes cotnains subject folded case test: [%s]", c.SubjectContainsFold)}, err
+			return testResult{true,
+				cp.Scolor(
+					"action", "message header ",
+					"header", "\"Subject\"",
+					"action", " passes cotnains subject folded case test: ",
+					"value", fmt.Sprintf("%q", c.SubjectContainsFold),
+				),
+			}, err
 		},
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.Contains == "" {
-				return testResult{true, "no contains anywhere test"}, nil
+				return testResult{true, cp.Scolor("base", "no contains anywhere test")}, nil
 			}
 
 			(*tests)++
 
 			bs, err := m.Raw()
 			if !strings.Contains(string(bs), c.Contains) {
-				return testResult{false, fmt.Sprintf("message fails contains anywhere test: [%s]", c.Contains)}, err
+				return testResult{false,
+					cp.Scolor(
+						"base", "message fails contains anywhere test: ",
+						"value", fmt.Sprintf("%q", c.Contains),
+					),
+				}, err
 			}
 
-			return testResult{true, fmt.Sprintf("message passes contains anywhere test: [%s]", c.Contains)}, err
+			return testResult{true,
+				cp.Scolor(
+					"action", "message passes contains anywhere test: ",
+					"value", fmt.Sprintf("%q", c.Contains),
+				),
+			}, err
 		},
 
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.ContainsFold == "" {
-				return testResult{true, "no contains anywhere folded case test"}, nil
+				return testResult{true, cp.Scolor("base", "no contains anywhere folded case test")}, nil
 			}
 
 			(*tests)++
 
 			bs, err := m.Raw()
 			if !xtrings.ContainsFold(string(bs), c.ContainsFold) {
-				return testResult{false, fmt.Sprintf("message fails contains anywhere folded case test: [%s]", c.ContainsFold)}, err
+				return testResult{false,
+					cp.Scolor(
+						"base", "message fails contains anywhere folded case test: ",
+						"value", fmt.Sprintf("%q", c.ContainsFold),
+					),
+				}, err
 			}
 
-			return testResult{true, fmt.Sprintf("message passes contains anywhere folded case test: [%s]", c.ContainsFold)}, err
+			return testResult{true,
+				cp.Scolor(
+					"action", "message passes contains anywhere folded case test: ",
+					"value", fmt.Sprintf("%q", c.ContainsFold),
+				),
+			}, err
 		},
 	}
 )
 
 func testAddress(dbgh, dbgt, expect string, got addr.AddressList, err error) (testResult, error) {
+	if err != nil {
+		err = fmt.Errorf("error reading %q header: %w", dbgh, err)
+	}
+
 	if len(got) == 0 {
-		return testResult{false, fmt.Sprintf("message is missing [%s] header", dbgh)}, err
+		return testResult{false,
+			cp.Scolor(
+				"base", "message is missing ",
+				"header", fmt.Sprintf("%q", dbgh),
+				"base", " header",
+			),
+		}, err
 	}
 
 	for _, mb := range got.Flatten() {
 		if strings.EqualFold(mb.Address(), expect) {
-			return testResult{true, fmt.Sprintf("message header [%s] matches [%s] test: [%s]", dbgh, dbgt, expect)}, err
+			return testResult{true,
+				cp.Scolor(
+					"action", "message header ",
+					"header", fmt.Sprintf("%q", dbgh),
+					"action", fmt.Sprintf(" matches %q test: ", dbgt),
+					"value", fmt.Sprintf("%q", expect),
+				),
+			}, err
 		}
 	}
 
-	return testResult{false, fmt.Sprintf("message header [%s] does not match [%s] test: [%s]", dbgh, dbgt, expect)}, err
+	return testResult{false,
+		cp.Scolor(
+			"base", "message header ",
+			"header", fmt.Sprintf("%q", dbgh),
+			"base", fmt.Sprintf(" does not match %q test: ", dbgt),
+			"value", fmt.Sprintf("%q", expect),
+		),
+	}, err
 }
 
 func testDomain(dbgh, dbgt, expect string, got addr.AddressList, err error) (testResult, error) {
 	if len(got) == 0 {
-		return testResult{false, fmt.Sprintf("message is missing [%s] header", dbgh)}, err
+		return testResult{false,
+			cp.Scolor(
+				"base", "message is missing ",
+				"header", fmt.Sprintf("%q", dbgh),
+				"base", " header",
+			),
+		}, err
 	}
 
 	for _, mb := range got.Flatten() {
 		if strings.EqualFold(mb.Domain(), expect) {
-			return testResult{true, fmt.Sprintf("message header [%s] matches [%s] domain test: [%s]", dbgh, dbgt, expect)}, err
+			return testResult{true,
+				cp.Scolor(
+					"action", "message header ",
+					"header", fmt.Sprintf("%q", dbgh),
+					"action", fmt.Sprintf(" matches %q domain test: ", dbgt),
+					"value", fmt.Sprintf("%q", expect),
+				),
+			}, err
 		}
 	}
 
-	return testResult{false, fmt.Sprintf("message header [%s] does not match [%s] domain test: [%s]", dbgh, dbgt, expect)}, err
+	return testResult{false,
+		cp.Scolor(
+			"base", "message header",
+			"header", fmt.Sprintf("%q", dbgh),
+			"base", fmt.Sprintf(" does not match %q domain test: ", dbgt),
+			"value", fmt.Sprintf("%q", expect),
+		),
+	}, err
 }
 
 func (m *Message) MoveTo(root string, name string) error {
