@@ -4,16 +4,17 @@ import (
 	"html"
 
 	"github.com/emersion/go-message/mail"
+	"github.com/zostay/go-addr/pkg/addr"
 )
 
 type Address = mail.Address
 
 type AddressList []*Address
 
-func AddressListStrings(addr AddressList) []string {
-	ss := make([]string, len(addr))
-	for i, a := range addr {
-		ss[i] = a.Address
+func AddressListStrings(as addr.AddressList) []string {
+	ss := make([]string, len(as))
+	for i, a := range as {
+		ss[i] = a.CleanString()
 	}
 	return ss
 }

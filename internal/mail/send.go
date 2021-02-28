@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	netmail "net/mail"
 	"sort"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/emersion/go-message/mail"
 	"github.com/emersion/go-sasl"
 	"github.com/emersion/go-smtp"
+	"github.com/zostay/go-addr/pkg/addr"
 	"github.com/zostay/go-email/pkg/email/mime"
 )
 
@@ -20,7 +22,7 @@ const (
 	ForwardedMessagePrefix = "---------- Forwarded message ---------"
 )
 
-func (m *Message) ForwardReader(to AddressList) (*bytes.Buffer, error) {
+func (m *Message) ForwardReader(to addr.AddressList) (*bytes.Buffer, error) {
 	mm, err := m.EmailMessage()
 	if err != nil {
 		return nil, err
@@ -31,10 +33,15 @@ func (m *Message) ForwardReader(to AddressList) (*bytes.Buffer, error) {
 		buf bytes.Buffer
 	)
 
+	nto := make([]*netmail.Address, len(to))
+	for i, a := range to {
+		nto[i] = &netmail.Address{Address: a.Address()}
+	}
+
 	h.SetDate(time.Now())
-	h.SetAddressList("To", to)
+	h.SetAddressList("To", nto)
 	h.SetAddressList("From", FromEmailAddress)
-	h.SetAddressList("X-Forwarded-To", to)
+	h.SetAddressList("X-Forwarded-To", nto)
 	h.SetAddressList("X-Forwarded-For", FromEmailAddress)
 
 	fwdSubject := mm.HeaderGet("Subject")
@@ -150,7 +157,7 @@ func (m *Message) ForwardReader(to AddressList) (*bytes.Buffer, error) {
 	return &buf, nil
 }
 
-func (m *Message) ForwardTo(tos ...*Address) error {
+func (m *Message) ForwardTo(tos addr.AddressList) error {
 	auth := sasl.NewPlainClient("", SASLUser, SASLPass)
 
 	mm, err := m.EmailMessage()
@@ -172,9 +179,9 @@ func (m *Message) ForwardTo(tos ...*Address) error {
 
 	finalTos := make([]string, 0, len(tos))
 	for _, to := range tos {
-		if _, ok := zfwm[to.Address]; !ok {
-			finalTos = append(finalTos, to.Address)
-			zfws = append(zfws, to.Address)
+		if _, ok := zfwm[to.Address()]; !ok {
+			finalTos = append(finalTos, to.Address())
+			zfws = append(zfws, to.Address())
 		}
 	}
 

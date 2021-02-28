@@ -413,7 +413,7 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 
 	if c.IsForwarding() {
 		if !fi.DryRun && fi.AllowSendingEmail {
-			err := m.ForwardTo(c.Forward...)
+			err := m.ForwardTo(c.Forward)
 			if err != nil {
 				return actions, err
 			}

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/kr/pretty"
+	"github.com/zostay/go-addr/pkg/addr"
 	"gopkg.in/yaml.v3"
 
 	"github.com/zostay/dotfiles-go/internal/dotfiles"
@@ -41,7 +42,7 @@ type CompiledRule struct {
 	Clear   []string
 	Label   []string
 	Move    string
-	Forward AddressList
+	Forward addr.AddressList
 }
 
 func (c *CompiledRule) IsClearing() bool   { return len(c.Clear) != 0 }
@@ -149,7 +150,10 @@ func LoadRules() (CompiledRules, error) {
 			compiledMove = strings.Replace(compiledMove, "/", ".", -1)
 		}
 
-		compiledForward := CompileAddress("forward", r.Forward)
+		compiledForward, err := CompileAddress("forward", r.Forward)
+		if err != nil {
+			return crs, err
+		}
 
 		if len(compiledLabel) == 0 && len(compiledClear) == 0 && compiledMove == "" && len(compiledForward) == 0 {
 			pretty.Printf("RULE MISSING ACTION %# v\n", r)
@@ -198,13 +202,17 @@ func CompileField(name string, field interface{}) []string {
 	return r1
 }
 
-func CompileAddress(name string, addr interface{}) AddressList {
-	r1 := CompileField(name, addr)
-	r2 := make(AddressList, len(r1))
+func CompileAddress(name string, a interface{}) (addr.AddressList, error) {
+	r1 := CompileField(name, a)
+	r2 := make(addr.AddressList, len(r1))
 	for i, a := range r1 {
-		r2[i] = &Address{Address: a}
+		var err error
+		r2[i], err = addr.ParseEmailAddress(a)
+		if err != nil {
+			return r2, err
+		}
 	}
-	return r2
+	return r2, nil
 }
 
 func CompileLabel(name string, label interface{}) []string {
