@@ -2,159 +2,149 @@ package mail
 
 import (
 	"bytes"
-	"fmt"
 	"html"
-	"io"
-	netmail "net/mail"
+	"math/rand"
 	"sort"
 	"strings"
 	"time"
 	"unicode"
 
-	"github.com/emersion/go-message/mail"
 	"github.com/emersion/go-sasl"
 	"github.com/emersion/go-smtp"
 	"github.com/zostay/go-addr/pkg/addr"
 	"github.com/zostay/go-email/pkg/email/mime"
+
+	"github.com/zostay/dotfiles-go/internal/dotfiles"
 )
 
 const (
+	FromName = "Andrew Sterling Hanenkamp"
+
 	ForwardedMessagePrefix = "---------- Forwarded message ---------"
 )
 
-func (m *Message) ForwardReader(to addr.AddressList) (*bytes.Buffer, error) {
+var (
+	FromEmail = dotfiles.MustGetSecret("GIT_EMAIL_HOME")
+
+	FromEmailAddress addr.AddressList
+)
+
+func init() {
+	var err error
+	FromEmailAddress = make(addr.AddressList, 1)
+	FromEmailAddress[0], err = addr.NewMailboxStr(FromName, FromEmail, "")
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (m *Message) ForwardMessage(to addr.AddressList) ([]byte, error) {
 	mm, err := m.EmailMessage()
 	if err != nil {
 		return nil, err
 	}
 
-	var (
-		h   mail.Header
-		buf bytes.Buffer
-	)
+	genBoundary := func() string {
+		for {
+			var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+			s := make([]rune, 30)
+			for i := range s {
+				s[i] = letters[rand.Intn(len(letters))]
+			}
 
-	nto := make([]*netmail.Address, len(to))
-	for i, a := range to {
-		nto[i] = &netmail.Address{Address: a.Address()}
+			boundary := string(s)
+			if !strings.Contains(mm.String(), boundary) {
+				return boundary
+			}
+		}
+		return ""
 	}
 
-	h.SetDate(time.Now())
-	h.SetAddressList("To", nto)
-	h.SetAddressList("From", FromEmailAddress)
-	h.SetAddressList("X-Forwarded-To", nto)
-	h.SetAddressList("X-Forwarded-For", FromEmailAddress)
+	boundary := genBoundary()
+	fm := mime.NewMessage(boundary)
+
+	fm.HeaderSetDate(time.Now())
+	fm.HeaderSetAddressList("To", to)
+	fm.HeaderSetAddressList("From", FromEmailAddress)
+	fm.HeaderSetAddressList("X-Forwarded-To", to)
+	fm.HeaderSetAddressList("X-Forwarded-For", FromEmailAddress)
 
 	fwdSubject := mm.HeaderGet("Subject")
 
-	h.SetSubject("Fwd: " + fwdSubject)
+	fm.HeaderSet("Subject", "Fwd: "+fwdSubject)
 
-	fwdFromList, err := h.AddressList("From")
+	fwdFromList, err := mm.HeaderGetAddressList("From")
 	if err != nil {
 		return nil, err
 	}
 
-	fwdToList, err := h.AddressList("To")
+	fwdToList, err := mm.HeaderGetAddressList("To")
 	if err != nil {
 		return nil, err
 	}
 
-	fwdCcList, err := h.AddressList("Cc")
+	fwdCcList, err := mm.HeaderGetAddressList("Cc")
 	if err != nil {
 		return nil, err
 	}
 
-	fwdDate, err := h.Date()
+	fwdDate, err := mm.HeaderGetDate()
+
 	if err != nil {
 		return nil, err
 	}
 
-	w, err := mail.CreateWriter(&buf, h)
-	if err != nil {
-		return nil, fmt.Errorf("error create message: %w", err)
-	}
+	// We will flatten a complex multipart message to a single level by doing this.
+	_ = mm.WalkSingleParts(func(d, i int, p *mime.Message) error {
+		boundary := genBoundary()
+		fp := mime.NewMessage(boundary)
 
-	ip, err := w.CreateInline()
-	if err != nil {
-		return nil, fmt.Errorf("error create inline message: %w", err)
-	}
-
-	err = mm.WalkSingleParts(func(m *mime.Message) error {
-		cd := mm.HeaderContentDisposition()
-		if cd == "inline" {
-			mt, err := mm.HeaderGetMediaType("Content-Type")
-			if err != nil {
-				return err
-			}
-
-			ct := mt.MediaType()
-			pfh := mail.InlineHeader{}
-			pfh.SetContentType(ct, mt.Parameters())
-
-			pw, err := ip.CreatePart(pfh)
-			if err != nil {
-				return fmt.Errorf("error creating inline part: %w", err)
-			}
-
-			switch ct {
-			case "text/plain":
-				_, _ = io.WriteString(pw, ForwardedMessagePrefix)
-				_, _ = io.WriteString(pw, "\nFrom: "+AddressListString(fwdFromList))
-				_, _ = io.WriteString(pw, "\nDate: "+fwdDate.Format(time.RFC1123))
-				_, _ = io.WriteString(pw, "\nSubject: "+fwdSubject)
-				_, _ = io.WriteString(pw, "\nTo: "+AddressListString(fwdToList))
-				if len(fwdCcList) > 0 {
-					_, _ = io.WriteString(pw, "\nCc: "+AddressListString(fwdCcList))
-				}
-				_, _ = io.WriteString(pw, "\n\n")
-			case "text/html":
-				_, _ = io.WriteString(pw, "<div><br></div><div><br><div>")
-				_, _ = io.WriteString(pw, ForwardedMessagePrefix)
-				_, _ = io.WriteString(pw, "<br>From: "+AddressListHTML(fwdFromList))
-				_, _ = io.WriteString(pw, "<br>Date: "+fwdDate.Format(time.RFC1123))
-				_, _ = io.WriteString(pw, "<br>Subject: "+html.EscapeString(fwdSubject))
-				_, _ = io.WriteString(pw, "<br>To: "+AddressListHTML(fwdToList))
-				if len(fwdCcList) > 0 {
-					_, _ = io.WriteString(pw, "<br>Cc: "+AddressListHTML(fwdCcList))
-				}
-				_, _ = io.WriteString(pw, "<br></div><br><br>")
-			}
-
-			_, _ = pw.Write(mm.Content())
-			pw.Close()
-		} else {
-			mt, err := mm.HeaderGetMediaType("Content-Type")
-			if err != nil {
-				return err
-			}
-
-			ct := mt.MediaType()
-			ps := mt.Parameters()
-			pfh := mail.AttachmentHeader{}
-			pfh.SetContentType(ct, ps)
-
-			pw, err := w.CreateAttachment(pfh)
-			if err != nil {
-				return fmt.Errorf("error creating attachment: %w", err)
-			}
-
-			_, _ = pw.Write(mm.Content())
-			pw.Close()
+		for _, h := range p.Fields {
+			fp.HeaderSet(h.Name(), h.Body())
 		}
+
+		var content strings.Builder
+		if p.HeaderContentDisposition() == "inline" {
+			cd := mm.HeaderContentType()
+			switch cd {
+			case "text/plain":
+				_, _ = content.WriteString(ForwardedMessagePrefix)
+				_, _ = content.WriteString("\nFrom: " + fwdFromList.String())
+				_, _ = content.WriteString("\nDate: " + fwdDate.Format(time.RFC1123))
+				_, _ = content.WriteString("\nSubject: " + fwdSubject)
+				_, _ = content.WriteString("\nTo: " + fwdToList.String())
+				if len(fwdCcList) > 0 {
+					_, _ = content.WriteString("\nCc: " + fwdCcList.String())
+				}
+				_, _ = content.WriteString("\n\n")
+			case "text/html":
+				_, _ = content.WriteString("<div><br></div><div><br><div>")
+				_, _ = content.WriteString(ForwardedMessagePrefix)
+				_, _ = content.WriteString("<br>From: " + AddressListHTML(fwdFromList))
+				_, _ = content.WriteString("<br>Date: " + fwdDate.Format(time.RFC1123))
+				_, _ = content.WriteString("<br>Subject: " + html.EscapeString(fwdSubject))
+				_, _ = content.WriteString("<br>To: " + AddressListHTML(fwdToList))
+				if len(fwdCcList) > 0 {
+					_, _ = content.WriteString("<br>Cc: " + AddressListHTML(fwdCcList))
+				}
+				_, _ = content.WriteString("<br></div><br><br>")
+			}
+
+			content.Write(p.Content())
+		}
+
+		if content.Len() > 0 {
+			fp.SetContentString(content.String())
+		} else {
+			fp.SetContent(p.Content())
+		}
+
+		fm.InsertPart(-1, fp)
 
 		return nil
 	})
 
-	if err != nil {
-		return nil, err
-	}
-
-	if ip != nil {
-		ip.Close()
-	}
-
-	w.Close()
-
-	return &buf, nil
+	return fm.Bytes(), nil
 }
 
 func (m *Message) ForwardTo(tos addr.AddressList) error {
@@ -185,7 +175,7 @@ func (m *Message) ForwardTo(tos addr.AddressList) error {
 		}
 	}
 
-	r, err := m.ForwardReader(tos)
+	fm, err := m.ForwardMessage(tos)
 	if err != nil {
 		return err
 	}
@@ -195,7 +185,7 @@ func (m *Message) ForwardTo(tos addr.AddressList) error {
 		auth,
 		FromEmail,
 		finalTos,
-		r,
+		bytes.NewReader(fm),
 	)
 	if err != nil {
 		return err

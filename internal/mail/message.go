@@ -18,32 +18,14 @@ import (
 	"github.com/zostay/dotfiles-go/internal/xtrings"
 )
 
-const (
-	FromName = "Andrew Sterling Hanenkamp"
-)
-
 var (
-	FromEmail = dotfiles.MustGetSecret("GIT_EMAIL_HOME")
-
 	SASLUser = dotfiles.MustGetSecret("LABEL_MAIL_USERNAME")
 	SASLPass = dotfiles.MustGetSecret("LABEL_MAIL_PASSWORD")
 )
 
 var (
-	FromEmailAddress AddressList
-)
-
-var (
 	cHeader = color.New(color.FgMagenta).SprintfFunc()
 )
-
-func init() {
-	FromEmailAddress = make(AddressList, 1)
-	FromEmailAddress[0] = &Address{
-		Name:    FromName,
-		Address: FromEmail,
-	}
-}
 
 type Message struct {
 	r Slurper
@@ -101,7 +83,7 @@ func (m *Message) Date() (time.Time, error) {
 		return time.Time{}, err
 	}
 
-	return mm.HeaderDate()
+	return mm.HeaderGetDate()
 }
 
 func (m *Message) Keywords() ([]string, error) {
