@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	_ "github.com/zostay/go-addr/pkg/addr/encoding"
+	_ "github.com/zostay/go-email/pkg/email/encoding"
 
 	"github.com/zostay/dotfiles-go/internal/mail"
 )

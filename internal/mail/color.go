@@ -18,6 +18,7 @@ var (
 		"base":   color.New(color.FgHiBlack),
 		"meh":    color.New(color.FgHiBlack),
 		"fail":   color.New(color.FgHiRed),
+		"warn":   color.New(color.FgHiYellow),
 		"pass":   color.New(color.FgHiGreen),
 		"header": color.New(color.FgMagenta),
 		"action": color.New(color.FgWhite),

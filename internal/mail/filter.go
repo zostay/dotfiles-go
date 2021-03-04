@@ -267,14 +267,14 @@ func (fi *Filter) LabelFolderMessages(
 		// Purged, leave it be
 		has, err := msg.HasKeyword("\\Trash")
 		if err != nil {
-			return err
+			return fmt.Errorf("error in %q: %v", msg.Filename(), err)
 		} else if has {
 			continue
 		}
 
 		as, err := fi.ApplyRules(msg, rules)
 		if err != nil {
-			return err
+			return fmt.Errorf("error in %q: %v", msg.Filename(), err)
 		}
 
 		for _, a := range as {
@@ -312,7 +312,12 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 		r, err := skippable(m, c)
 
 		if err != nil {
-			return actions, err
+			cp.Fcolor(os.Stderr,
+				"warn", "❗WARNING ",
+				"meh", fmt.Sprintf(": %s. (", err),
+				"file", m.Filename(),
+				"meh", ")\n",
+			)
 		}
 
 		if !r.skip {
@@ -332,7 +337,12 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 		r, err := applies(m, c, &tests)
 
 		if err != nil {
-			return actions, err
+			cp.Fcolor(os.Stderr,
+				"warn", "❗WARNING ",
+				"meh", fmt.Sprintf(": %s. (", err),
+				"file", m.Filename(),
+				"meh", ")\n",
+			)
 		}
 
 		if r.pass {

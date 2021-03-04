@@ -8,7 +8,7 @@ replace github.com/zostay/go-addr => ../go-addr
 
 require (
 	github.com/ansd/lastpass-go v0.1.1
-	github.com/araddon/dateparse v0.0.0-20201001162425-8aadafed4dc4
+	github.com/araddon/dateparse v0.0.0-20210207001429-0eec95c9db7e
 	github.com/bbrks/wrap v2.3.0+incompatible
 	github.com/emersion/go-message v0.14.1
 	github.com/emersion/go-sasl v0.0.0-20200509203442-7bfe0ed36a21
