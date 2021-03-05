@@ -26,6 +26,7 @@ var (
 		"value":  color.New(color.FgCyan),
 		"file":   color.New(color.FgWhite),
 
+		"reading":    color.New(color.FgHiMagenta),
 		"labeling":   color.New(color.FgHiGreen),
 		"forwarding": color.New(color.FgHiYellow),
 		"moving":     color.New(color.FgHiCyan),

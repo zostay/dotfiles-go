@@ -261,7 +261,10 @@ func (fi *Filter) LabelFolderMessages(
 		}
 
 		if fi.Debug > 2 {
-			fmt.Fprintf(os.Stderr, "READING %s\n", msg.Filename())
+			cp.Fcolor(os.Stderr,
+				"reading", "READING ",
+				"file", fmt.Sprintf("%s\n", msg.Filename()),
+			)
 		}
 
 		// Purged, leave it be
