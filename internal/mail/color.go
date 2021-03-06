@@ -10,10 +10,6 @@ import (
 type ColorPalette map[string]*color.Color
 
 var (
-	cMehf  = color.New(color.FgHiBlack).FprintfFunc()
-	cFailf = color.New(color.FgHiRed).FprintfFunc()
-	cPassf = color.New(color.FgHiGreen).FprintfFunc()
-
 	cp = ColorPalette{
 		"base":   color.New(color.FgHiBlack),
 		"meh":    color.New(color.FgHiBlack),

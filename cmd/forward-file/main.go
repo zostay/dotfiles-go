@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/zostay/go-addr/pkg/addr"
 
 	"github.com/zostay/dotfiles-go/internal/mail"
 )
@@ -26,10 +27,14 @@ func init() {
 func RunForward(cmd *cobra.Command, args []string) {
 	m := mail.NewFileMessage(msg)
 
-	addr := make(mail.AddressList, 1)
-	addr[0] = &mail.Address{Address: to}
+	as := make(addr.AddressList, 1)
+	var err error
+	as[0], err = addr.NewMailboxStr("", to, "")
+	if err != nil {
+		panic(err)
+	}
 
-	err := m.ForwardTo(addr...)
+	err = m.ForwardTo(as)
 	if err != nil {
 		panic(err)
 	}

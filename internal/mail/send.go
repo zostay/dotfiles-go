@@ -57,7 +57,6 @@ func (m *Message) ForwardMessage(to addr.AddressList) ([]byte, error) {
 				return boundary
 			}
 		}
-		return ""
 	}
 
 	boundary := genBoundary()
@@ -71,7 +70,10 @@ func (m *Message) ForwardMessage(to addr.AddressList) ([]byte, error) {
 
 	fwdSubject := mm.HeaderGet("Subject")
 
-	fm.HeaderSet("Subject", "Fwd: "+fwdSubject)
+	err = fm.HeaderSet("Subject", "Fwd: "+fwdSubject)
+	if err != nil {
+		return nil, err
+	}
 
 	fwdFromList, err := mm.HeaderGetAddressList("From")
 	if err != nil {
@@ -100,7 +102,10 @@ func (m *Message) ForwardMessage(to addr.AddressList) ([]byte, error) {
 		fp := mime.NewMessage(boundary)
 
 		for _, h := range p.Fields {
-			fp.HeaderSet(h.Name(), h.Body())
+			err = fp.HeaderSet(h.Name(), h.Body())
+			if err != nil {
+				return err
+			}
 		}
 
 		var content strings.Builder

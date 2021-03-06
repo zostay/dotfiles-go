@@ -10,7 +10,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/fatih/color"
 	"github.com/zostay/go-addr/pkg/addr"
 	"github.com/zostay/go-email/pkg/email/mime"
 
@@ -21,10 +20,6 @@ import (
 var (
 	SASLUser = dotfiles.MustGetSecret("LABEL_MAIL_USERNAME")
 	SASLPass = dotfiles.MustGetSecret("LABEL_MAIL_PASSWORD")
-)
-
-var (
-	cHeader = color.New(color.FgMagenta).SprintfFunc()
 )
 
 type Message struct {
