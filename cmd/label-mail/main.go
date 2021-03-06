@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime/pprof"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -21,6 +22,7 @@ var (
 	verbose      int
 	folders      []string
 	allowSending bool
+	cpuprofile   string
 )
 
 func init() {
@@ -36,6 +38,7 @@ func init() {
 	cmd.PersistentFlags().CountVarP(&verbose, "verbose", "v", "enable debugging verbose mode")
 	cmd.PersistentFlags().StringSliceVarP(&folders, "folder", "f", []string{}, "select folders to filter")
 	cmd.PersistentFlags().BoolVarP(&allowSending, "allow-forwarding", "e", false, "allow email forwarding rules to run")
+	cmd.PersistentFlags().StringVar(&cpuprofile, "cpuprofile", "", "write CPU profile to `file`")
 }
 
 func RunLabelMail(cmd *cobra.Command, args []string) {
@@ -54,6 +57,18 @@ func RunLabelMail(cmd *cobra.Command, args []string) {
 
 	filter.DryRun = dryRun
 	filter.Debug = verbose
+
+	if cpuprofile != "" {
+		f, err := os.Create(cpuprofile)
+		if err != nil {
+			panic(err)
+		}
+		defer f.Close()
+		if err := pprof.StartCPUProfile(f); err != nil {
+			panic(err)
+		}
+		defer pprof.StopCPUProfile()
+	}
 
 	actions, err := filter.LabelMessages(folders)
 	if err != nil {
