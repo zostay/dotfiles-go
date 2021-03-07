@@ -8,12 +8,14 @@ import (
 
 // encryption in here is probably just me being paranoid
 
+// Internal is a Keeper that stores secrets in memory.
 type Internal struct {
 	cipher  cipher.AEAD
 	nonce   []byte
 	secrets map[string][]byte
 }
 
+// MustNewInternal calls NewInternal and panics if it returns an error.
 func MustNewInternal() *Internal {
 	i, err := NewInternal()
 	if err != nil {
@@ -22,6 +24,7 @@ func MustNewInternal() *Internal {
 	return i
 }
 
+// NewInternal constructs a new secret memory store.
 func NewInternal() (*Internal, error) {
 	k := make([]byte, 32)
 	_, err := rand.Read(k)
@@ -54,6 +57,7 @@ func NewInternal() (*Internal, error) {
 	return i, nil
 }
 
+// GetSecret retrieves the named secret from the internal memory store.
 func (i *Internal) GetSecret(name string) (string, error) {
 	if s, ok := i.secrets[name]; ok {
 		ds, err := i.cipher.Open(nil, i.nonce, s, nil)
@@ -66,6 +70,8 @@ func (i *Internal) GetSecret(name string) (string, error) {
 	}
 }
 
+// SetSecret saves the named secret to the given value in the internal memory
+// store.
 func (i *Internal) SetSecret(name, secret string) error {
 	s := []byte(secret)
 	es := i.cipher.Seal(nil, i.nonce, s, nil)

@@ -7,6 +7,9 @@ import (
 	"github.com/gopasspw/gopass/pkg/pinentry"
 )
 
+// GetMasterPassword checks to see if the named master password is stored and
+// available for retrieval. It returns it if it is. If it is not, it will popup
+// a dialog box prompting the user to enter it.
 func GetMasterPassword(which, name string) (string, error) {
 	secret, err := Master.GetSecret(name)
 	if err == nil {
@@ -24,10 +27,13 @@ func GetMasterPassword(which, name string) (string, error) {
 	)
 }
 
+// SetMasterPassword sets the named master password.
 func SetMasterPassword(name, secret string) error {
 	return Master.SetSecret(name, secret)
 }
 
+// PinEntry is a tool that makes it easier to display a dialog prompting the
+// user for a password.
 func PinEntry(title, desc, prompt, ok string) (string, error) {
 	pi, err := pinentry.New()
 	if err != nil {

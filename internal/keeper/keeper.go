@@ -1,3 +1,5 @@
+// Package keeper is tooling that allows my other processes to locate and load
+// secrets from the master password service.
 package keeper
 
 import (
@@ -11,12 +13,14 @@ import (
 )
 
 const (
-	PingPeriod  = 500 * time.Millisecond
-	PingTimeout = 5 * time.Second
+	PingPeriod  = 500 * time.Millisecond // time between pings to issue to see if the service is alive
+	PingTimeout = 5 * time.Second        // amount of time to wait for a successful ping response
 )
 
-var master = secrets.NewHttp()
-
+// checkPing starts a process that pings the master password service to see if
+// it is running. The context specifies the limits on how long the the ping
+// should run before giving up. The integer argument determines the maximum
+// number of pings to issue. A value of 0 means no limit.
 func checkPing(ctx context.Context, n int) bool {
 	pinger := make(chan bool)
 	go func() {
@@ -25,7 +29,7 @@ func checkPing(ctx context.Context, n int) bool {
 				return
 			}
 
-			err := master.Ping(ctx)
+			err := secrets.Master.Ping(ctx)
 			ok := err == nil
 			pinger <- ok
 			time.Sleep(PingPeriod)
@@ -44,6 +48,10 @@ func checkPing(ctx context.Context, n int) bool {
 	}
 }
 
+// startSecretKeeper starts up the master password service and then issues a
+// ping to tell us when the service has finished startup. This returns once the
+// service has been confirmed to be running or panics if the service does not
+// start.
 func startSecretKeeper() {
 	fmt.Fprintln(os.Stderr, "Starting secret keeper background daemon.")
 
@@ -88,6 +96,10 @@ func startSecretKeeper() {
 	}
 }
 
+// RequiresSecretKeeper checks to see if the master secret keeper is running. If
+// it is, it does nothing but returns immediately. If it is not, it attempts to
+// start it and returns once it has confirmed that it is running. If it has a
+// problem starting it, it will panic.
 func RequiresSecretKeeper() {
 	ctx, cancel := context.WithTimeout(context.Background(), PingTimeout)
 	defer cancel()
