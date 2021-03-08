@@ -2,9 +2,8 @@ module github.com/zostay/dotfiles-go
 
 go 1.14
 
-replace github.com/zostay/go-email => ../go-email
-
-replace github.com/zostay/go-addr => ../go-addr
+// replace github.com/zostay/go-email => ../go-email
+// replace github.com/zostay/go-addr => ../go-addr
 
 require (
 	github.com/ansd/lastpass-go v0.1.1
