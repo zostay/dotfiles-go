@@ -306,10 +306,15 @@ github.com/zostay/go-addr v0.0.0-20210209030504-189c8957e6c2 h1:BuRwRNAQQeFn0NTQ
 github.com/zostay/go-addr v0.0.0-20210209030504-189c8957e6c2/go.mod h1:OaRM8yyhoMpJUM4pnYzyiSOSX1eydsMaQlXkCVHWep0=
 github.com/zostay/go-addr v0.0.0-20210219053543-2c79a4ed235b h1:dvEPCgIktzYVwH2UYRQIFEXoquhRqW9wS/5H0BDSnvo=
 github.com/zostay/go-addr v0.0.0-20210219053543-2c79a4ed235b/go.mod h1:OaRM8yyhoMpJUM4pnYzyiSOSX1eydsMaQlXkCVHWep0=
+github.com/zostay/go-addr v0.0.0-20210306035107-8377abe8b98a h1:sFePX3ch0YmzaVDems3rdEt6xWfHurpQHohNQavWU0o=
+github.com/zostay/go-addr v0.0.0-20210306035107-8377abe8b98a/go.mod h1:tG7AdJGatrC29Uncw2yXm2aGe5/wuT/WaRsPg+83ynU=
 github.com/zostay/go-email v0.0.0-20210219025259-2eae94fa9725 h1:/OpDUPR5newrHIZgruU0EYns5c41YcoGudEXKgay6w8=
 github.com/zostay/go-email v0.0.0-20210219025259-2eae94fa9725/go.mod h1:Jq91kl8e5l2q6yWl545QETDHLCYHKXVsg9qcv+oODOA=
 github.com/zostay/go-email v0.0.0-20210220042620-dace31642cf6 h1:hZIfqfTqeV8emmWXe6F5nuWBp0/oC3PSQ04hiNa5Rlg=
 github.com/zostay/go-email v0.0.0-20210220042620-dace31642cf6/go.mod h1:Jq91kl8e5l2q6yWl545QETDHLCYHKXVsg9qcv+oODOA=
+github.com/zostay/go-email v0.0.0-20210220050615-4e0916087ed6/go.mod h1:Jq91kl8e5l2q6yWl545QETDHLCYHKXVsg9qcv+oODOA=
+github.com/zostay/go-email v0.0.0-20210305193025-d3e7bff4be66 h1:6mqf3GVf6kys9UEiAQrYd+xAbkVmZsVIoCKYe/zQhoc=
+github.com/zostay/go-email v0.0.0-20210305193025-d3e7bff4be66/go.mod h1:qAo0niR6n7gx37R44m4tGg8Y3dmVyg191iMaH3izmBI=
 github.com/zostay/go-esv-api v0.0.0-20201114154340-be89d3d9bb0c h1:kJ8WMYYfkn4NlRn+rN4zxvrM4dq/N1GXVyzn7TQSZiE=
 github.com/zostay/go-esv-api v0.0.0-20201114154340-be89d3d9bb0c/go.mod h1:ZRsrJQJWB5YeM9wBJfay31e4ALJPH6UNVOqWXdvyB/I=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
