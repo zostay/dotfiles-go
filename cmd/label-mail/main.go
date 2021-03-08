@@ -11,6 +11,7 @@ import (
 	_ "github.com/zostay/go-addr/pkg/addr/encoding"
 	_ "github.com/zostay/go-email/pkg/email/encoding"
 
+	"github.com/zostay/dotfiles-go/internal/keeper"
 	"github.com/zostay/dotfiles-go/internal/mail"
 )
 
@@ -26,6 +27,8 @@ var (
 )
 
 func init() {
+	keeper.RequiresSecretKeeper()
+
 	cmd = &cobra.Command{
 		Use:   "label-mail",
 		Short: "Sort my email in the local MailDir",
