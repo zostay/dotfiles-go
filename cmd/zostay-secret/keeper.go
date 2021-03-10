@@ -19,6 +19,16 @@ var (
 	l *log.Logger    // the logger
 )
 
+func init() {
+	keeperCmd := &cobra.Command{
+		Use:   "keeper",
+		Short: "Startup the secret keeper server",
+		Run:   RunSecretKeeper,
+	}
+
+	cmd.AddCommand(keeperCmd)
+}
+
 // SecretRequest represents the information expected on request.
 type SecretRequest struct {
 	Name   string // the name of the secret being get or set

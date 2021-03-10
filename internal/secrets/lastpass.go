@@ -10,12 +10,14 @@ import (
 	"github.com/joho/godotenv"
 )
 
-const LocalEnv = ".zshrc.local"
+const LocalEnv = ".zshrc.local" // where to find the LPASS_USERNAME
 
 var (
-	LastPassUsername string
+	LastPassUsername string // the string loaded from LPASS_USERNAME
 )
 
+// init loads the .zshrc.local environment file and grabs the LPASS_USERNAME
+// from it, which allows me to keep my LastPass username out of my dotfiles.
 func init() {
 	homedir, err := os.UserHomeDir()
 	if err == nil {
@@ -27,10 +29,14 @@ func init() {
 	}
 }
 
+// LastPass is a secret Keeper that gets secrets from the LastPass
+// password manager service.
 type LastPass struct {
 	lp *lastpass.Client
 }
 
+// NewLastPass constructs and returns a new LastPass Keeper or returns an error
+// if there was a problem during construction.
 func NewLastPass() (*LastPass, error) {
 	u := LastPassUsername
 	if LastPassUsername == "" {
@@ -64,6 +70,7 @@ func NewLastPass() (*LastPass, error) {
 	return &LastPass{lp}, nil
 }
 
+// GetSecret returns the secret from the Lastpass service.
 func (l *LastPass) GetSecret(name string) (string, error) {
 	as, err := l.lp.Accounts(context.Background())
 	if err != nil {
@@ -79,6 +86,7 @@ func (l *LastPass) GetSecret(name string) (string, error) {
 	return "", ErrNotFound
 }
 
+// SetSecret sets the secret into the LastPass service.
 func (l *LastPass) SetSecret(name, secret string) error {
 	as, err := l.lp.Accounts(context.Background())
 	if err != nil {

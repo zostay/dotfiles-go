@@ -10,9 +10,8 @@ const (
 
 var (
 	ErrNotFound = errors.New("secret not found") // error returned by a secrets.Keeper when a secret is not found
-	Master      = NewHttp()                      // the master password service
+	Master      = NewHttp()                      // the master password Keeper
 	autoKeeper  Keeper                           // this is a local cache of secrets
-	locumKeeper Keeper                           // this provides access to the backing stores for secrets
 )
 
 // Keeper is the interface that all secret keepers follow.
@@ -40,39 +39,23 @@ type Keeper interface {
 	SetSecret(name string, secret string) error
 }
 
-// AutoKeeper returns a Keeper used for local, per-process caching of secrets.
+// AutoKeeper returns the Keeper preferred for password storage in the current
+// application. It is lazily constructed on the first call to this function or
+// can be set by the application via SetAutoKeeper.
 func AutoKeeper() Keeper {
 	setupBuiltinKeepers()
 
 	return autoKeeper
 }
 
-// LocumKeeper returns the Keeper that represents the backing stores used for
-// secrets.
-func LocumKeeper() Keeper {
-	setupBuiltinKeepers()
-
-	return locumKeeper
-}
-
 // SetAutoKeeper replaces the local caching keeper with another.
 func SetAutoKeeper(k Keeper) { autoKeeper = k }
 
-// SetLcoumKeeper repalces the backing store keeper with another.
-func SetLocumKeeper(k Keeper) { locumKeeper = k }
-
-// QuickSetKeepers sets both the local caching keeper and the backing store
-// keeper with teh same keeper.
-func QuickSetKeepers(k Keeper) {
-	SetAutoKeeper(k)
-	SetLocumKeeper(k)
-}
-
-// setupBuiltinKeepers is called lazily to setup the AutoKeeper and LocumKeeper
-// when those functions are called and SetAutoKeeper and SetLocumKeeper have not
-// been called yet. This provides the default keeper configuration.
+// setupBuiltinKeepers is called lazily to setup the AutoKeeper when that
+// function is called and SetAutoKeeper has not been called yet. This provides
+// the default Keeper configuration for any application.
 func setupBuiltinKeepers() {
-	if autoKeeper != nil && locumKeeper != nil {
+	if autoKeeper != nil {
 		return
 	}
 
@@ -80,16 +63,10 @@ func setupBuiltinKeepers() {
 	lp, err2 := NewLastPass()
 	if err2 == nil && err1 == nil {
 		autoKeeper = NewCacher(lp, kp)
-		lt := NewLocumTenens()
-		lt.AddKeeper(kp)
-		lt.AddKeeper(lp)
-		locumKeeper = lt
 	} else if err1 == nil {
 		autoKeeper = kp
-		locumKeeper = kp
 	} else if err2 == nil {
 		autoKeeper = lp
-		locumKeeper = kp
 	} else {
 		i, err := NewInternal()
 		if err != nil {
@@ -97,6 +74,5 @@ func setupBuiltinKeepers() {
 		}
 
 		autoKeeper = i
-		locumKeeper = i
 	}
 }

@@ -7,6 +7,17 @@ import (
 	"github.com/zostay/dotfiles-go/internal/secrets"
 )
 
+func init() {
+	pullCmd := &cobra.Command{
+		Use:   "pull",
+		Short: "Mark a secret for local sync",
+		Args:  cobra.ExactArgs(1),
+		Run:   RunSecretPull,
+	}
+
+	cmd.AddCommand(pullCmd)
+}
+
 func RunSecretPull(cmd *cobra.Command, args []string) {
 	keeper.RequiresSecretKeeper()
 

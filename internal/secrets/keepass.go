@@ -11,13 +11,14 @@ import (
 )
 
 const (
-	ZostayKeepassFile = ".zostay.kdbx"
+	ZostayKeepassFile = ".zostay.kdbx" // name of my keepass file
 )
 
 var (
-	ZostayKeepassPath string
+	ZostayKeepassPath string // path to my keepass file
 )
 
+// init sets up ZostayKeepassPath.
 func init() {
 	var err error
 	homedir, err := os.UserHomeDir()
@@ -28,10 +29,13 @@ func init() {
 	ZostayKeepassPath = path.Join(homedir, ZostayKeepassFile)
 }
 
+// Keepass is a Keeper with access to a Keepass password database.
 type Keepass struct {
 	db *keepass.Database
 }
 
+// NewKeepass creates a new Keepass Keeper and returns it. It returns an error
+// if there's a problem reading the Keepass database.
 func NewKeepass() (*Keepass, error) {
 	var err error
 	db := keepass.NewDatabase()
@@ -67,11 +71,13 @@ func NewKeepass() (*Keepass, error) {
 	return &k, nil
 }
 
+// KeepassWalker represents a tool for walking Keepass records.
 type KeepassWalker struct {
-	groups  *list.List
-	entries *list.List
+	groups  *list.List // the open list of groups to walk
+	entries *list.List // the open list of entries to walk
 }
 
+// Walker creates an iterator for walking through the Keepass database records.
 func (k *Keepass) Walker() *KeepassWalker {
 	groups := list.New()
 	for _, g := range k.db.Content.Root.Groups {
@@ -84,6 +90,7 @@ func (k *Keepass) Walker() *KeepassWalker {
 	}
 }
 
+// Next returns the next record for iteration.
 func (w *KeepassWalker) Next() bool {
 	if w.entries == nil || w.entries.Len() == 0 {
 		if w.groups.Len() > 0 {
@@ -112,6 +119,7 @@ func (w *KeepassWalker) Next() bool {
 	}
 }
 
+// Entry retrieves the current entry to inspect during iteration.
 func (w *KeepassWalker) Entry() *keepass.Entry {
 	le := w.entries.Front()
 	e := le.Value.(keepass.Entry)
@@ -120,6 +128,7 @@ func (w *KeepassWalker) Entry() *keepass.Entry {
 	return &e
 }
 
+// GetSecret retrieves the named secret from the Keepass database.
 func (k *Keepass) GetSecret(name string) (string, error) {
 	kw := k.Walker()
 	for kw.Next() {
@@ -143,6 +152,8 @@ func (k *Keepass) GetSecret(name string) (string, error) {
 	return "", ErrNotFound
 }
 
+// ensureRobotGroupExists creates a group named ZostayRobotGroup if that group
+// does not yet exist.
 func (k *Keepass) ensureRobotGroupExists() {
 	for _, g := range k.db.Content.Root.Groups[0].Groups {
 		if g.Name == ZostayRobotGroup {
@@ -156,6 +167,8 @@ func (k *Keepass) ensureRobotGroupExists() {
 	})
 }
 
+// SetSecret sets the given secret in the ZostayRobotGroup, creating that group
+// if it does not yet exist.
 func (k *Keepass) SetSecret(name, secret string) error {
 	k.ensureRobotGroupExists()
 	for i := range k.db.Content.Root.Groups[0].Groups {
@@ -210,7 +223,7 @@ func (k *Keepass) SetSecret(name, secret string) error {
 				return err
 			}
 
-			err = k.Save()
+			err = k.save()
 			if err != nil {
 				return err
 			}
@@ -222,16 +235,8 @@ func (k *Keepass) SetSecret(name, secret string) error {
 	return fmt.Errorf("unable to attach secret titled %s to group named %s", name, ZostayRobotGroup)
 }
 
-func (k *Keepass) Group(name string) (*keepass.Group, error) {
-	for _, g := range k.db.Content.Root.Groups {
-		if g.Name == name {
-			return &g, nil
-		}
-	}
-	return nil, ErrNotFound
-}
-
-func (k *Keepass) Save() error {
+// save sends changes made to the Keepass database to disk.
+func (k *Keepass) save() error {
 	cfw, err := os.Create(ZostayKeepassPath + ".new")
 	if err != nil {
 		return err

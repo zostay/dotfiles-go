@@ -9,6 +9,25 @@ import (
 	"github.com/zostay/dotfiles-go/internal/secrets"
 )
 
+var (
+	setLocalOnly, setRemoteOnly, setMasterOnly bool
+)
+
+func init() {
+	setCmd := &cobra.Command{
+		Use:   "set",
+		Short: "Set a secret",
+		Args:  cobra.ExactArgs(2),
+		RunE:  RunSetSecret,
+	}
+
+	setCmd.Flags().BoolVarP(&setLocalOnly, "local-only", "l", false, "create secret only in local database")
+	setCmd.Flags().BoolVarP(&setRemoteOnly, "remote-only", "r", false, "create secret only in remote database")
+	setCmd.Flags().BoolVarP(&setMasterOnly, "master", "m", false, "set the secret in the system keyring")
+
+	cmd.AddCommand(setCmd)
+}
+
 func RunSetSecret(cmd *cobra.Command, args []string) error {
 	keeper.RequiresSecretKeeper()
 
