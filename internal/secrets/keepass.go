@@ -23,7 +23,7 @@ type Keepass struct {
 }
 
 type safeWriter struct {
-	w    io.WriteCloser
+	w    *os.File
 	path string
 }
 
@@ -32,6 +32,8 @@ func (w *safeWriter) Write(b []byte) (int, error) {
 }
 
 func (w *safeWriter) Close() error {
+	w.w.Close()
+
 	_ = os.Rename(w.path, w.path+".old")
 	err := os.Rename(w.path+".new", w.path)
 	if err != nil {

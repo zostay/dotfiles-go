@@ -27,13 +27,14 @@ func RandString(n int) string {
 }
 
 func TestKeepassLoaderSaver(t *testing.T) {
-	var hasfile, hasnew, hasold bool
-
+	// get a tempfile to work with
 	tmpfile, err := ioutil.TempFile(os.TempDir(), "kbdx")
 	if !assert.NoError(t, err, "able to get a tempfile") {
 		return
 	}
 
+	// cleanup tooling
+	var hasfile, hasnew, hasold bool
 	hasfile = true
 	fn := tmpfile.Name()
 	defer func() {
@@ -48,15 +49,21 @@ func TestKeepassLoaderSaver(t *testing.T) {
 		}
 	}()
 
+	// writing starter data
 	s := RandString(20)
-	tmpfile.WriteString(s)
-	tmpfile.Close()
+	_, _ = tmpfile.WriteString(s)
+	err = tmpfile.Close()
+	if !assert.NoError(t, err, "closed initial tmpfile") {
+		return
+	}
 
+	// setup
 	k, err := newKeepass(fn, "testing", ZostayHighSecurityGroup)
 	if !assert.NoError(t, err, "setup keepass") {
 		return
 	}
 
+	// testing the loader
 	r, err := k.loader()
 	if !assert.NoError(t, err, "tempfile already exists, so reading it should be fine") {
 		return
@@ -67,7 +74,7 @@ func TestKeepassLoaderSaver(t *testing.T) {
 		return
 	}
 
-	assert.Equal(t, s, sr, "found the same string from loader that we wrote")
+	assert.Equal(t, []byte(s), sr, "found the same string from loader that we wrote")
 
 	fi, err := os.Stat(fn)
 	if !assert.NoError(t, err, "can stat the file") {
@@ -76,12 +83,13 @@ func TestKeepassLoaderSaver(t *testing.T) {
 	size := fi.Size()
 	mtime := fi.ModTime()
 
+	// testing the saver
 	w, err := k.saver()
 	if !assert.NoError(t, err, "save creates file") {
 		return
 	}
 
-	fi, err = os.Stat(fn + ".new")
+	_, err = os.Stat(fn + ".new")
 	if !assert.NoError(t, err, "save created .new") {
 		return
 	}
@@ -93,23 +101,41 @@ func TestKeepassLoaderSaver(t *testing.T) {
 		return
 	}
 
+	// backup file is okay
 	assert.Equal(t, size, fi.Size(), "orig size is same")
 	assert.Equal(t, mtime, fi.ModTime(), "orig mtime is same")
 
 	s = RandString(33)
 	_, _ = io.WriteString(w, s)
-	err = w.Close()
-	if !assert.NoError(t, err, "close should create file") {
+
+	err = w.(*safeWriter).w.Sync()
+	if !assert.NoError(t, err, "sync worked") {
 		return
 	}
 
 	fi, err = os.Stat(fn + ".new")
-	if !assert.True(t, os.IsNotExist(err), ".new is gone") {
+	if !assert.NoError(t, err, "stat new file while writing is ok") {
 		return
 	}
 
 	newsize := fi.Size()
 	newmtime := fi.ModTime()
+
+	w.(*safeWriter).w, err = os.Open(fn)
+	if !assert.NoError(t, err, "file still readable") {
+		return
+	}
+
+	// saver close does some renaming
+	err = w.Close()
+	if !assert.NoError(t, err, "close should create file") {
+		return
+	}
+
+	_, err = os.Stat(fn + ".new")
+	if !assert.True(t, os.IsNotExist(err), ".new is gone") {
+		return
+	}
 
 	fi, err = os.Stat(fn + ".old")
 	if !assert.NoError(t, err, "orig is now .old") {
