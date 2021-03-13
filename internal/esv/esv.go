@@ -44,12 +44,17 @@ func RandomVerse() (string, error) {
 }
 
 func GetVerse(ref string) (string, error) {
-	token, err := secrets.AutoKeeper().GetSecret("ESV_API_TOKEN")
+	local, err := secrets.InsecureLocal()
 	if err != nil {
 		return "", err
 	}
 
-	c := esv.New(token)
+	token, err := local.GetSecret("ESV_API_TOKEN")
+	if err != nil {
+		return "", err
+	}
+
+	c := esv.New(token.Value)
 	tr, err := c.PassageText(ref,
 		esv.WithIncludeVerseNumbers(false),
 		esv.WithIncludeHeadings(false),

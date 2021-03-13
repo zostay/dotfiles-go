@@ -13,15 +13,23 @@ const (
 type Keyring struct{}
 
 // GetSecret retrieves the named secret from the system keyring.
-func (Keyring) GetSecret(name string) (string, error) {
+func (Keyring) GetSecret(name string) (*Secret, error) {
 	s, err := keyring.Get(SecretServiceName, name)
 	if err != nil {
-		return "", ErrNotFound
+		return nil, ErrNotFound
 	}
-	return s, nil
+	return &Secret{
+		Name:  name,
+		Value: s,
+	}, nil
 }
 
 // SetSecret sets the named secret to the given value in the system keyring.
-func (Keyring) SetSecret(name, secret string) error {
-	return keyring.Set(SecretServiceName, name, secret)
+func (Keyring) SetSecret(secret *Secret) error {
+	return keyring.Set(SecretServiceName, secret.Name, secret.Value)
+}
+
+// RemoveSecret deletes the named secret.
+func (Keyring) RemoveSecret(name string) error {
+	return keyring.Delete(SecretServiceName, name)
 }

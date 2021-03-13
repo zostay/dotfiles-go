@@ -59,7 +59,7 @@ func handleGetSecret(w http.ResponseWriter, r *http.Request, sr *SecretResponse)
 	}
 
 	l.Printf("Get secret %s", name)
-	sr.Secret = s
+	sr.Secret = s.Value
 }
 
 // handleSetSecret looks up the secret named in the request and sets it to the
@@ -85,7 +85,10 @@ func handleSetSecret(w http.ResponseWriter, r *http.Request, sr *SecretResponse)
 		return
 	}
 
-	err = k.SetSecret(sreq.Name, sreq.Secret)
+	err = k.SetSecret(&secrets.Secret{
+		Name:  sreq.Name,
+		Value: sreq.Secret,
+	})
 	if err != nil {
 		l.Printf("failed to store JSON request: %v", err)
 

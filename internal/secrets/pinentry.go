@@ -11,9 +11,14 @@ import (
 // available for retrieval. It returns it if it is. If it is not, it will popup
 // a dialog box prompting the user to enter it.
 func GetMasterPassword(which, name string) (string, error) {
-	secret, err := Master.GetSecret(name)
+	master, err := Master()
+	if err != nil {
+		return "", err
+	}
+
+	secret, err := master.GetSecret(name)
 	if err == nil {
-		return secret, nil
+		return secret.Value, nil
 	} else {
 		fmt.Fprintf(os.Stderr, "Unable to retrieve password from secret keeper daemon: %v\n", err)
 		fmt.Fprintln(os.Stderr, "Fallback to pinentry.")
@@ -29,7 +34,15 @@ func GetMasterPassword(which, name string) (string, error) {
 
 // SetMasterPassword sets the named master password.
 func SetMasterPassword(name, secret string) error {
-	return Master.SetSecret(name, secret)
+	master, err := Master()
+	if err != nil {
+		return err
+	}
+
+	return master.SetSecret(&Secret{
+		Name:  name,
+		Value: secret,
+	})
 }
 
 // PinEntry is a tool that makes it easier to display a dialog prompting the

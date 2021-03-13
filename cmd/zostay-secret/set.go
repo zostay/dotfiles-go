@@ -37,7 +37,7 @@ func RunSetSecret(cmd *cobra.Command, args []string) error {
 
 	ks := make([]secrets.Keeper, 0, 2)
 	if !setLocalOnly {
-		lp, err := secrets.NewLastPass()
+		lp, err := secrets.SecureMain()
 		if err != nil {
 			panic(err)
 		}
@@ -46,7 +46,7 @@ func RunSetSecret(cmd *cobra.Command, args []string) error {
 	}
 
 	if !setRemoteOnly {
-		kp, err := secrets.NewKeepass()
+		kp, err := secrets.SecureLocal()
 		if err != nil {
 			panic(err)
 		}
@@ -66,7 +66,10 @@ func RunSetSecret(cmd *cobra.Command, args []string) error {
 	}
 
 	for _, k := range ks {
-		err := k.SetSecret(name, secret)
+		err := k.SetSecret(&secrets.Secret{
+			Name:  name,
+			Value: secret,
+		})
 		if err != nil {
 			panic(err)
 		}

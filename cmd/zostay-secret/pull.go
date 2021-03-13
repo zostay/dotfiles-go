@@ -21,12 +21,12 @@ func init() {
 func RunSecretPull(cmd *cobra.Command, args []string) {
 	keeper.RequiresSecretKeeper()
 
-	lp, err := secrets.NewLastPass()
+	lp, err := secrets.SecureMain()
 	if err != nil {
 		panic(err)
 	}
 
-	kp, err := secrets.NewKeepass()
+	kp, err := secrets.SecureLocal()
 	if err != nil {
 		panic(err)
 	}
@@ -38,7 +38,7 @@ func RunSecretPull(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	err = kp.SetSecret(name, s)
+	err = kp.SetSecret(s)
 	if err != nil {
 		panic(err)
 	}

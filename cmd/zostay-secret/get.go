@@ -38,12 +38,16 @@ func RunGetSecret(cmd *cobra.Command, args []string) error {
 
 	var k secrets.Keeper
 	if getMasterOnly {
-		k = secrets.Master
+		var err error
+		k, err = secrets.Master()
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		lt := secrets.NewLocumTenens()
 
 		if !getLocalOnly && !getMasterOnly {
-			kp, err := secrets.NewKeepass()
+			kp, err := secrets.SecureLocal()
 			if err != nil {
 				panic(err)
 			}
@@ -52,7 +56,7 @@ func RunGetSecret(cmd *cobra.Command, args []string) error {
 		}
 
 		if !getRemoteOnly && !getMasterOnly {
-			lp, err := secrets.NewLastPass()
+			lp, err := secrets.SecureMain()
 			if err != nil {
 				panic(err)
 			}

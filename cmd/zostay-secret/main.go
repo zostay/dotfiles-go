@@ -1,3 +1,4 @@
+// Package main provides an application for managing my personal secrets.
 package main
 
 import (

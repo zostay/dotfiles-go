@@ -1,18 +1,74 @@
 // Package secrets is a helper I use to store my secrets for use with my
 // dotfiles but in such a way as that I don't store the secrets in the dotfiles.
+//
+// All secrets are kept in a Keeper. This is a simple abstraction around a
+// key/value store. From there, I have four major keepers that I use:
+//
+// 1. The master password Keeper is an in memory Keeper that allows me to store
+//    and retreive master passwords for the other secure Keepers. This runs as a
+//    service available only to the local machine.
+//
+// 2. The local insecure password Keeper is used to store secrets that need no
+//    special protections. These are stored similar to a netrc setup (but not
+//    using netrc).
+//
+// 3. The local secure password Keeper is a Keepass database, which replicates
+//    my remote secure password Keeper. This is also a backup I use in case
+//    LastPass decides to stop granting me access to my own data.
+//
+// 4. The remote secure password Keeper is a LastPass database that is sync'd
+//    with my other devices automtically. This contains both secure and insecre
+//    secrets.
 package secrets
 
-import "errors"
+import (
+	"errors"
+	"os"
+	"path"
+	"time"
+
+	"github.com/joho/godotenv"
+)
 
 const (
-	ZostayRobotGroup = "Robot" // category name for automatically managed secrets
+	ZostayHighSecurityGroup = "Robot"    // category name for high-security managed secrets
+	ZostayLowSecurityGroup  = "Insecure" // category name for low-security managed secrets
+
+	KeepassMasterKey        = "KEEPASS-MASTER-sterling" // the key to the master password for Keepass
+	LastPassMasterKeyPrefix = "LASTPASS-MASTER-"        // the key to the master password for LastPass (minus username)
+	LastPassEnvFile         = ".zshrc.local"            // where to find the LPASS_USERNAME
+	LastPassUserEnvKey      = "LPASS_USERNAME"          // environment file key with LastPass username set
+
+	ZostayKeepassFile = ".zostay.kbdx" // name of my keepass file
+
 )
 
 var (
 	ErrNotFound = errors.New("secret not found") // error returned by a secrets.Keeper when a secret is not found
-	Master      = NewHttp()                      // the master password Keeper
-	autoKeeper  Keeper                           // this is a local cache of secrets
 )
+
+var (
+	master    Keeper // client to access the master password Keeper
+	linsecure Keeper // local insecure secret Keeper
+	lsecure   Keeper // local secure secret Keeper
+	rinsecure Keeper // remote main insecure secret Keeper
+	rsecure   Keeper // remote main secure secret Keeper
+
+	ZostayKeepassPath string // path to my keepass file
+
+	LastPassUsername string // the lastpass username
+)
+
+// Secret represents an individual secret stored. This may contain some amount
+// of metadata in addition to the secret name and value.
+type Secret struct {
+	Name  string // the name given to the secret
+	Value string // the secret/password/key associated with the secret
+
+	Username     string    // the username associated with the secret
+	LastModified time.Time // time the secret was last modified (may be time.Time{} if that's not known)
+	Group        string    // the group the secret is in (if any)
+}
 
 // Keeper is the interface that all secret keepers follow.
 type Keeper interface {
@@ -26,7 +82,7 @@ type Keeper interface {
 	//
 	// When their is an error with the secret store, return an empty string and
 	// an error.
-	GetSecret(name string) (string, error)
+	GetSecret(name string) (*Secret, error)
 
 	// SetSecret stores the secret in the Keeper's store. The two arguments are
 	// the name to give the secret and the cleartext secret, resepctively. For
@@ -36,43 +92,98 @@ type Keeper interface {
 	// On success, this method should return nil.
 	//
 	// If there is a problem storing the secret, this method should return an error.
-	SetSecret(name string, secret string) error
+	SetSecret(secret *Secret) error
+
+	// RemoveSecret removes the named secret from the Keeper's store.
+	//
+	// On success, this method should return nil.
+	//
+	// If there is a problem deleting the secret, this method should return an
+	// error.
+	RemoveSecret(name string) error
 }
 
-// AutoKeeper returns the Keeper preferred for password storage in the current
-// application. It is lazily constructed on the first call to this function or
-// can be set by the application via SetAutoKeeper.
-func AutoKeeper() Keeper {
-	setupBuiltinKeepers()
-
-	return autoKeeper
-}
-
-// SetAutoKeeper replaces the local caching keeper with another.
-func SetAutoKeeper(k Keeper) { autoKeeper = k }
-
-// setupBuiltinKeepers is called lazily to setup the AutoKeeper when that
-// function is called and SetAutoKeeper has not been called yet. This provides
-// the default Keeper configuration for any application.
-func setupBuiltinKeepers() {
-	if autoKeeper != nil {
-		return
+// Master returns the client Keeper to reach the master secret Keeper.
+func Master() (Keeper, error) {
+	if master == nil {
+		master = NewHttp()
 	}
 
-	kp, err1 := NewKeepass()
-	lp, err2 := NewLastPass()
-	if err2 == nil && err1 == nil {
-		autoKeeper = NewCacher(lp, kp)
-	} else if err1 == nil {
-		autoKeeper = kp
-	} else if err2 == nil {
-		autoKeeper = lp
-	} else {
-		i, err := NewInternal()
+	return master, nil
+}
+
+// InsecureLocal returns the Keeper for local insecure secrets.
+func InsecureLocal() (Keeper, error) {
+	if linsecure == nil {
+		linsecure = new(LowSecurity)
+	}
+
+	return linsecure, nil
+}
+
+// SecureLocal returns the Keeper for local secure secrets.
+func SecureLocal() (Keeper, error) {
+	if lsecure == nil {
+		master, err := GetMasterPassword("Keepass", KeepassMasterKey)
 		if err != nil {
-			panic("unable to create any kind of secret keeper")
+			return nil, err
 		}
 
-		autoKeeper = i
+		lsecure, err = NewKeepass(ZostayKeepassPath, master, ZostayHighSecurityGroup)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return lsecure, nil
+}
+
+// InsecureMain returns my primary secret Keeper for storing insecure secrets.
+func InsecureMain() (Keeper, error) {
+	if rinsecure == nil {
+		var err error
+		rinsecure, err = NewLastPass(ZostayLowSecurityGroup, true)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return rinsecure, nil
+}
+
+// SecureMain returns my primary secret Keeper for stroing secure secrets.
+func SecureMain() (Keeper, error) {
+	if rsecure == nil {
+		var err error
+		rsecure, err = NewLastPass(ZostayHighSecurityGroup, true)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return rsecure, nil
+}
+
+// init sets up ZostayKeepassPath.
+func init() {
+	var err error
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
+
+	ZostayKeepassPath = path.Join(homedir, ZostayKeepassFile)
+}
+
+// init loads the .zshrc.local environment file and grabs the LPASS_USERNAME
+// from it, which allows me to keep my LastPass username out of my dotfiles.
+func init() {
+	homedir, err := os.UserHomeDir()
+	if err == nil {
+		_ = godotenv.Load(path.Join(homedir, LastPassEnvFile))
+	}
+
+	if u := os.Getenv(LastPassUserEnvKey); u != "" {
+		LastPassUsername = u
 	}
 }

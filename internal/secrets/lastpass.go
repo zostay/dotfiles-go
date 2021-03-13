@@ -2,42 +2,28 @@ package secrets
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
-	"path"
 
 	"github.com/ansd/lastpass-go"
-	"github.com/joho/godotenv"
 )
-
-const LocalEnv = ".zshrc.local" // where to find the LPASS_USERNAME
-
-var (
-	LastPassUsername string // the string loaded from LPASS_USERNAME
-)
-
-// init loads the .zshrc.local environment file and grabs the LPASS_USERNAME
-// from it, which allows me to keep my LastPass username out of my dotfiles.
-func init() {
-	homedir, err := os.UserHomeDir()
-	if err == nil {
-		_ = godotenv.Load(path.Join(homedir, LocalEnv))
-	}
-
-	if u := os.Getenv("LPASS_USERNAME"); u != "" {
-		LastPassUsername = u
-	}
-}
 
 // LastPass is a secret Keeper that gets secrets from the LastPass
 // password manager service.
 type LastPass struct {
-	lp *lastpass.Client
+	lp    *lastpass.Client
+	cat   string
+	limit bool
 }
 
 // NewLastPass constructs and returns a new LastPass Keeper or returns an error
 // if there was a problem during construction.
-func NewLastPass() (*LastPass, error) {
+//
+// The cat argument sets the name of the group to use when setting secrets. If
+// the limit parameter is true, then getting a secret will be limited to secrets
+// in the group named by cat.
+func NewLastPass(cat string, limit bool) (*LastPass, error) {
 	u := LastPassUsername
 	if LastPassUsername == "" {
 		var err error
@@ -67,46 +53,58 @@ func NewLastPass() (*LastPass, error) {
 		fmt.Fprintf(os.Stderr, "Error keeping master password in memory.")
 	}
 
-	return &LastPass{lp}, nil
+	return &LastPass{lp, cat, limit}, nil
 }
 
 // GetSecret returns the secret from the Lastpass service.
-func (l *LastPass) GetSecret(name string) (string, error) {
+func (l *LastPass) GetSecret(name string) (*Secret, error) {
 	as, err := l.lp.Accounts(context.Background())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	for _, a := range as {
+		if l.limit && a.Group != l.cat {
+			continue
+		}
+
 		if a.Name == name {
-			return a.Password, nil
+			return &Secret{
+				Name:  name,
+				Value: a.Password,
+			}, nil
 		}
 	}
 
-	return "", ErrNotFound
+	return nil, ErrNotFound
 }
 
 // SetSecret sets the secret into the LastPass service.
-func (l *LastPass) SetSecret(name, secret string) error {
+func (l *LastPass) SetSecret(secret *Secret) error {
 	as, err := l.lp.Accounts(context.Background())
 	if err != nil {
 		return err
 	}
 
 	for _, a := range as {
-		if a.Name == name {
-			a.Password = secret
+		if a.Name == secret.Name {
+			a.Password = secret.Value
 			err := l.lp.Update(context.Background(), a)
 			return err
 		}
 	}
 
 	a := lastpass.Account{
-		Name:     name,
-		Password: secret,
-		Group:    ZostayRobotGroup,
+		Name:     secret.Name,
+		Password: secret.Value,
+		Group:    l.cat,
 	}
 
 	err = l.lp.Add(context.Background(), &a)
 	return err
+}
+
+// RemoveSecret removes the secret from the LastPass service.
+func (l *LastPass) RemoveSecret(name string) error {
+	return errors.New("not implemented")
 }

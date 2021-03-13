@@ -29,7 +29,12 @@ func checkPing(ctx context.Context, n int) bool {
 				return
 			}
 
-			err := secrets.Master.Ping(ctx)
+			master, err := secrets.Master()
+			if err != nil {
+				return
+			}
+
+			err = master.(*secrets.Http).Ping(ctx)
 			ok := err == nil
 			pinger <- ok
 			time.Sleep(PingPeriod)
