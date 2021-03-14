@@ -269,6 +269,7 @@ func (k *Keepass) getEntry(g *keepass.Group, name string) *keepass.Entry {
 
 // setEntryValue replaces a value in an entry or adds the value to the entry
 func (k *Keepass) setEntryValue(e *keepass.Entry, key, value string, protected bool) {
+	// update existing
 	for k, v := range e.Values {
 		if v.Key == key {
 			e.Values[k].Value.Content = value
@@ -276,6 +277,7 @@ func (k *Keepass) setEntryValue(e *keepass.Entry, key, value string, protected b
 		}
 	}
 
+	// create new
 	newValue := keepass.ValueData{
 		Key: key,
 		Value: keepass.V{
@@ -302,17 +304,21 @@ func (k *Keepass) SetSecret(secret *Secret) error {
 		}
 
 		e := k.getEntry(g, secret.Name)
-		if e == nil {
+		isnew := (e == nil)
+		if isnew {
 			newe := keepass.NewEntry()
 			e = &newe
 			e.Values = make([]keepass.ValueData, 0, 2)
 			k.setEntryValue(e, "Title", secret.Name, false)
-			g.Entries = append(g.Entries, *e)
 		}
 
 		k.setEntryValue(e, "Password", secret.Value, true)
 		if secret.Username != "" {
 			k.setEntryValue(e, "Username", secret.Username, false)
+		}
+
+		if isnew {
+			g.Entries = append(g.Entries, *e)
 		}
 
 		err = k.db.LockProtectedEntries()

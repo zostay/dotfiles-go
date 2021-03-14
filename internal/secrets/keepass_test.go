@@ -183,29 +183,33 @@ type testWriter struct {
 func (t *testWriter) Close() error { t.closed = true; return nil }
 
 func TestKeepass(t *testing.T) {
-	k, err := newKeepass("", "testing123", "Test")
-	if !assert.NoError(t, err, "no error getting keepass") {
-		return
-	}
-
-	var buf *bytes.Buffer
-
 	rs := make([]*testReader, 0)
-	k.loader = func() (io.ReadCloser, error) {
-		r := &testReader{bytes.NewReader(buf.Bytes()), false}
-		rs = append(rs, r)
-		return r, nil
-	}
-
 	ws := make([]*testWriter, 0)
-	k.saver = func() (io.WriteCloser, error) {
-		buf = new(bytes.Buffer)
-		w := &testWriter{buf, false}
-		ws = append(ws, w)
-		return w, nil
+
+	factory := func() (Keeper, error) {
+		k, err := newKeepass("", "testing123", "Test")
+		if !assert.NoError(t, err, "no error getting keepass") {
+			return nil, err
+		}
+
+		var buf *bytes.Buffer
+		k.loader = func() (io.ReadCloser, error) {
+			r := &testReader{bytes.NewReader(buf.Bytes()), false}
+			rs = append(rs, r)
+			return r, nil
+		}
+
+		k.saver = func() (io.WriteCloser, error) {
+			buf = new(bytes.Buffer)
+			w := &testWriter{buf, false}
+			ws = append(ws, w)
+			return w, nil
+		}
+
+		return k, nil
 	}
 
-	SecretKeeperTestSuite(k)
+	SecretKeeperTestSuite(t, factory)
 
 	for i, r := range rs {
 		assert.Truef(t, r.closed, "reader %d was closed", i)
