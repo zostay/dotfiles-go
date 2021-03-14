@@ -3,44 +3,18 @@ package secrets
 import (
 	"container/list"
 	"fmt"
-	"io"
-	"os"
 
 	keepass "github.com/tobischo/gokeepasslib/v3"
 	w "github.com/tobischo/gokeepasslib/v3/wrappers"
-)
 
-type keepassSaver func() (io.WriteCloser, error)
-type keepassLoader func() (io.ReadCloser, error)
+	"github.com/zostay/dotfiles-go/internal/fssafe"
+)
 
 // Keepass is a Keeper with access to a Keepass password database.
 type Keepass struct {
+	fssafe.LoaderSaver
 	db    *keepass.Database // the loaded db struct
 	group string            // only work with this group
-
-	loader keepassLoader // get a reader to load from
-	saver  keepassSaver  // get a writer to save to
-}
-
-type safeWriter struct {
-	w    *os.File
-	path string
-}
-
-func (w *safeWriter) Write(b []byte) (int, error) {
-	return w.w.Write(b)
-}
-
-func (w *safeWriter) Close() error {
-	w.w.Close()
-
-	_ = os.Rename(w.path, w.path+".old")
-	err := os.Rename(w.path+".new", w.path)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // newKeepass creates a new Keepass Keeper and returns it. It does not attempt
@@ -49,25 +23,8 @@ func newKeepass(path, master, group string) (*Keepass, error) {
 	db := keepass.NewDatabase()
 	db.Credentials = keepass.NewPasswordCredentials(master)
 
-	loader := func() (io.ReadCloser, error) {
-		dfr, err := os.Open(path)
-		if err != nil {
-			return nil, err
-		}
-
-		return dfr, nil
-	}
-
-	saver := func() (io.WriteCloser, error) {
-		cfw, err := os.Create(path + ".new")
-		if err != nil {
-			return nil, err
-		}
-
-		return &safeWriter{cfw, path}, nil
-	}
-
-	k := Keepass{db, group, loader, saver}
+	ls := fssafe.NewFileSystemLoaderSaver(path)
+	k := Keepass{ls, db, group}
 
 	return &k, nil
 }
@@ -97,7 +54,7 @@ func NewKeepass(path, master, group string) (*Keepass, error) {
 // ensureExists attempts to create an empty Keepass database if there's an error
 // attempting to load. Returns an error if the save fails.
 func (k *Keepass) ensureExists() error {
-	_, err := k.loader()
+	_, err := k.Loader()
 	if err != nil {
 		err = k.save()
 		if err != nil {
@@ -110,7 +67,7 @@ func (k *Keepass) ensureExists() error {
 
 // reload loads the databsae from disk.
 func (k *Keepass) reload() error {
-	dfr, err := k.loader()
+	dfr, err := k.Loader()
 	if err != nil {
 		return err
 	}
@@ -362,7 +319,7 @@ func (k *Keepass) RemoveSecret(name string) error {
 
 // save sends changes made to the Keepass database to disk.
 func (k *Keepass) save() error {
-	cfw, err := k.saver()
+	cfw, err := k.Saver()
 	if err != nil {
 		return err
 	}
