@@ -23,6 +23,7 @@ package secrets
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path"
 	"time"
@@ -138,28 +139,76 @@ func SecureLocal() (Keeper, error) {
 	return lsecure, nil
 }
 
+// setupLastPass makes sure we have a LastPass username and password to work
+// with before we get started.
+func setupLastPass() (string, string, error) {
+	u := LastPassUsername
+	if LastPassUsername == "" {
+		var err error
+		u, err = PinEntry(
+			"Zostay LastPass",
+			"Asking for LastPass Username",
+			"Username:",
+			"OK",
+		)
+		if err != nil {
+			return "", "", err
+		}
+	}
+
+	p, err := GetMasterPassword("LastPass", "LASTPASS-MASTER-"+u)
+	if err != nil {
+		return "", "", err
+	}
+
+	return u, p, err
+}
+
+// finishLastPass saves the master password. It should only be saved in the case
+// that it works, right?
+func finishLastPass(u, p string) {
+	err := SetMasterPassword("LASTPASS-MASTER-"+u, p)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error keeping master password in memory.")
+	}
+}
+
 // InsecureMain returns my primary secret Keeper for storing insecure secrets.
 func InsecureMain() (Keeper, error) {
+	u, p, err := setupLastPass()
+	if err != nil {
+		return nil, err
+	}
+
 	if rinsecure == nil {
 		var err error
-		rinsecure, err = NewLastPass(ZostayLowSecurityGroup, true)
+		rinsecure, err = NewLastPass(ZostayLowSecurityGroup, u, p, true)
 		if err != nil {
 			return nil, err
 		}
 	}
+
+	finishLastPass(u, p)
 
 	return rinsecure, nil
 }
 
 // SecureMain returns my primary secret Keeper for stroing secure secrets.
 func SecureMain() (Keeper, error) {
+	u, p, err := setupLastPass()
+	if err != nil {
+		return nil, err
+	}
+
 	if rsecure == nil {
 		var err error
-		rsecure, err = NewLastPass(ZostayHighSecurityGroup, true)
+		rsecure, err = NewLastPass(ZostayHighSecurityGroup, u, p, true)
 		if err != nil {
 			return nil, err
 		}
 	}
+
+	finishLastPass(u, p)
 
 	return rsecure, nil
 }

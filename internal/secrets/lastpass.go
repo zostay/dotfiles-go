@@ -3,16 +3,27 @@ package secrets
 import (
 	"context"
 	"errors"
-	"fmt"
-	"os"
 
 	"github.com/ansd/lastpass-go"
 )
 
+// lastPassClient interface is the parts of LastPass I actually make use. This
+// interface makes it easier to stub in for testing.
+type lastPassClient interface {
+	// Accounts should list secrets.
+	Accounts(ctx context.Context) ([]*lastpass.Account, error)
+
+	// Update updates a single secret.
+	Update(ctx context.Context, a *lastpass.Account) error
+
+	// Add creates a new secret.
+	Add(ctx context.Context, a *lastpass.Account) error
+}
+
 // LastPass is a secret Keeper that gets secrets from the LastPass
 // password manager service.
 type LastPass struct {
-	lp    *lastpass.Client
+	lp    lastPassClient
 	cat   string
 	limit bool
 }
@@ -23,34 +34,10 @@ type LastPass struct {
 // The cat argument sets the name of the group to use when setting secrets. If
 // the limit parameter is true, then getting a secret will be limited to secrets
 // in the group named by cat.
-func NewLastPass(cat string, limit bool) (*LastPass, error) {
-	u := LastPassUsername
-	if LastPassUsername == "" {
-		var err error
-		u, err = PinEntry(
-			"Zostay LastPass",
-			"Asking for LastPass Username",
-			"Username:",
-			"OK",
-		)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	p, err := GetMasterPassword("LastPass", "LASTPASS-MASTER-"+u)
-	if err != nil {
-		return nil, err
-	}
-
+func NewLastPass(cat, u, p string, limit bool) (*LastPass, error) {
 	lp, err := lastpass.NewClient(context.Background(), u, p)
 	if err != nil {
 		return nil, err
-	}
-
-	err = SetMasterPassword("LASTPASS-MASTER-"+u, p)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error keeping master password in memory.")
 	}
 
 	return &LastPass{lp, cat, limit}, nil
