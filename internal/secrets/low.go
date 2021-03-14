@@ -7,6 +7,8 @@ import (
 	"path"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/zostay/dotfiles-go/internal/fssafe"
 )
 
 const (
@@ -30,11 +32,23 @@ func init() {
 
 // LowSecurity is a secret Keeper that stores secrets in plain text. There are a
 // few secrets are used in such a way that no additional security is required.
-type LowSecurity struct{}
+type LowSecurity struct {
+	fssafe.LoaderSaver
+}
+
+// NewLowSecurity creates a low security secret store at the given path.
+func NewLowSecurity(path string) *LowSecurity {
+	return &LowSecurity{fssafe.NewFileSystemLoaderSaver(path)}
+}
 
 // loadSecrets loads the secrets from file.
-func (*LowSecurity) loadSecrets() (map[string]string, error) {
-	yamlSecrets, err := ioutil.ReadFile(ZostaySecretsPath)
+func (s *LowSecurity) loadSecrets() (map[string]string, error) {
+	r, err := s.Loader()
+	if err != nil {
+		return nil, err
+	}
+
+	yamlSecrets, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
@@ -49,13 +63,19 @@ func (*LowSecurity) loadSecrets() (map[string]string, error) {
 }
 
 // saveSecrets saves the secrets to file.
-func (*LowSecurity) saveSecrets(s map[string]string) error {
+func (k *LowSecurity) saveSecrets(s map[string]string) error {
 	out, err := yaml.Marshal(s)
 	if err != nil {
 		return err
 	}
 
-	err = ioutil.WriteFile(ZostaySecretsPath, out, 0644)
+	w, err := k.Saver()
+	if err != nil {
+		return err
+	}
+
+	_, _ = w.Write(out)
+	err = w.Close()
 	if err != nil {
 		return err
 	}
