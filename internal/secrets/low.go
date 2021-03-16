@@ -1,34 +1,12 @@
 package secrets
 
 import (
-	"errors"
 	"io/ioutil"
-	"os"
-	"path"
 
 	"gopkg.in/yaml.v3"
 
 	"github.com/zostay/dotfiles-go/internal/fssafe"
 )
-
-const (
-	ZostaySecretsFile = ".secrets.yaml" // where to store low security secrets
-)
-
-var (
-	ZostaySecretsPath string // the path to the low secrutiy secrets
-)
-
-// init sets up ZostaySecretsPath
-func init() {
-	var err error
-	homedir, err := os.UserHomeDir()
-	if err != nil {
-		panic(err)
-	}
-
-	ZostaySecretsPath = path.Join(homedir, ZostaySecretsFile)
-}
 
 // LowSecurity is a secret Keeper that stores secrets in plain text. There are a
 // few secrets are used in such a way that no additional security is required.
@@ -45,7 +23,12 @@ func NewLowSecurity(path string) *LowSecurity {
 func (s *LowSecurity) loadSecrets() (map[string]string, error) {
 	r, err := s.Loader()
 	if err != nil {
-		return nil, err
+		// give saving a try first
+		_ = s.saveSecrets(map[string]string{})
+		r, err = s.Loader()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	yamlSecrets, err := ioutil.ReadAll(r)
@@ -117,6 +100,18 @@ func (s *LowSecurity) SetSecret(secret *Secret) error {
 	return nil
 }
 
-func (*LowSecurity) RemoveSecret(name string) error {
-	return errors.New("not implemented")
+func (s *LowSecurity) RemoveSecret(name string) error {
+	secrets, err := s.loadSecrets()
+	if err != nil {
+		return err
+	}
+
+	delete(secrets, name)
+
+	err = s.saveSecrets(secrets)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

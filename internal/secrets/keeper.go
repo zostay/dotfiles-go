@@ -42,6 +42,7 @@ const (
 
 	ZostayKeepassFile = ".zostay.kbdx" // name of my keepass file
 
+	ZostayLowSecuritySecretsFile = ".secrets.yaml" // where to store low security secrets
 )
 
 var (
@@ -56,6 +57,8 @@ var (
 	rsecure   Keeper // remote main secure secret Keeper
 
 	ZostayKeepassPath string // path to my keepass file
+
+	ZostayLowSecuritySecretsPath string // the path to the low secrutiy secrets
 
 	LastPassUsername string // the lastpass username
 )
@@ -116,7 +119,7 @@ func Master() (Keeper, error) {
 // InsecureLocal returns the Keeper for local insecure secrets.
 func InsecureLocal() (Keeper, error) {
 	if linsecure == nil {
-		linsecure = new(LowSecurity)
+		linsecure = NewLowSecurity(ZostayLowSecuritySecretsPath)
 	}
 
 	return linsecure, nil
@@ -265,4 +268,15 @@ func init() {
 	if u := os.Getenv(LastPassUserEnvKey); u != "" {
 		LastPassUsername = u
 	}
+}
+
+// init sets up ZostayLowSecuritySecretsPath
+func init() {
+	var err error
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		panic(err)
+	}
+
+	ZostayLowSecuritySecretsPath = path.Join(homedir, ZostayLowSecuritySecretsFile)
 }

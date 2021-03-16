@@ -44,12 +44,12 @@ func RandomVerse() (string, error) {
 }
 
 func GetVerse(ref string) (string, error) {
-	local, err := secrets.InsecureLocal()
+	s, err := secrets.Insecure()
 	if err != nil {
 		return "", err
 	}
 
-	token, err := local.GetSecret("ESV_API_TOKEN")
+	token, err := s.GetSecret("ESV_API_TOKEN")
 	if err != nil {
 		return "", err
 	}

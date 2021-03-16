@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func init() {
+func initGet() {
 	getCmd := &cobra.Command{
 		Use:   "get",
 		Short: "Get a secret",
@@ -29,7 +29,7 @@ func RunGetSecret(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(secret)
+	fmt.Println(secret.Value)
 
 	return nil
 }

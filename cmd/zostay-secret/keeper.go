@@ -23,7 +23,7 @@ var (
 	l *log.Logger    // the logger
 )
 
-func init() {
+func initKeeper() {
 	keeperCmd := &cobra.Command{
 		Use:   "keeper",
 		Short: "Startup the secret keeper server",

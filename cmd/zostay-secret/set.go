@@ -6,7 +6,7 @@ import (
 	"github.com/zostay/dotfiles-go/internal/secrets"
 )
 
-func init() {
+func initSet() {
 	setCmd := &cobra.Command{
 		Use:   "set",
 		Short: "Set a secret",

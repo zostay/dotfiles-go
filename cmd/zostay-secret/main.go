@@ -20,6 +20,10 @@ func init() {
 	cmd.PersistentFlags().BoolVarP(&remoteOnly, "remote-only", "r", false, "only use the remote database")
 	cmd.PersistentFlags().BoolVarP(&masterOnly, "master", "m", false, "only use the system keyring")
 	cmd.PersistentFlags().BoolVar(&insecure, "insecure", false, "use the insecure store instead of the insecure store")
+
+	initGet()
+	initSet()
+	initKeeper()
 }
 
 func main() {
