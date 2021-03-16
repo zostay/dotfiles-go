@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/zostay/dotfiles-go/internal/secrets"
 )
 
 func initGet() {
@@ -27,6 +30,10 @@ func RunGetSecret(cmd *cobra.Command, args []string) error {
 
 	secret, err := k.GetSecret(name)
 	if err != nil {
+		if err == secrets.ErrNotFound {
+			fmt.Fprintf(os.Stderr, "Secret %q was not found.\n", name)
+			os.Exit(1)
+		}
 		panic(err)
 	}
 	fmt.Println(secret.Value)
