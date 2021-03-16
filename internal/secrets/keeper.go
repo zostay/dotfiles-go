@@ -213,7 +213,7 @@ func SecureMain() (Keeper, error) {
 	return rsecure, nil
 }
 
-// Secure returns my caching secret keeper for insecure secrets.
+// Insecure returns my caching secret keeper for insecure secrets.
 func Insecure() (Keeper, error) {
 	src, err := InsecureMain()
 	if err != nil {
@@ -221,6 +221,21 @@ func Insecure() (Keeper, error) {
 	}
 
 	tgt, err := InsecureLocal()
+	if err != nil {
+		return nil, err
+	}
+
+	return NewCacher(src, tgt, 24*time.Hour), nil
+}
+
+// Secure returns my caching secret keeper for secure secrets.
+func Secure() (Keeper, error) {
+	src, err := SecureMain()
+	if err != nil {
+		return nil, err
+	}
+
+	tgt, err := SecureLocal()
 	if err != nil {
 		return nil, err
 	}
