@@ -14,6 +14,10 @@ import (
 	"github.com/zostay/dotfiles-go/internal/secrets"
 )
 
+const (
+	SecretServiceName = "zostay-dotfiles" // the service to use with the system keyring service
+)
+
 var (
 	k secrets.Keeper // the internal secrets keepr this server provides access to
 	l *log.Logger    // the logger
@@ -130,12 +134,15 @@ func PingHandler(w http.ResponseWriter, r *http.Request) {
 func RunSecretKeeper(cmd *cobra.Command, args []string) {
 	l = log.New(os.Stderr, "", log.LstdFlags)
 
+	// my own paranoid in memory story
 	ik, err := secrets.NewInternal()
 	if err != nil {
 		panic(err)
 	}
 
-	rk := secrets.Keyring{}
+	// fallback to the system keyring, in case I decide some password can be
+	// safely stored there and protected by my login.
+	rk := secrets.NewKeyring(SecretServiceName)
 
 	lt := secrets.NewLocumTenens()
 	lt.AddKeeper(ik)

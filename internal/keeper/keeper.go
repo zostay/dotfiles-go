@@ -93,6 +93,8 @@ func startSecretKeeper() {
 		panic(fmt.Errorf("failure to release secret keeper daemon to background: %w", err))
 	}
 
+	// ping until we give up to be sure the keeper is finished startup in the
+	// background
 	ctx, cancel := context.WithTimeout(context.Background(), PingTimeout)
 	defer cancel()
 
