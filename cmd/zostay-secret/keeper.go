@@ -14,12 +14,16 @@ import (
 	"github.com/zostay/dotfiles-go/internal/secrets"
 )
 
+const (
+	SecretServiceName = "zostay-dotfiles" // the service to use with the system keyring service
+)
+
 var (
 	k secrets.Keeper // the internal secrets keepr this server provides access to
 	l *log.Logger    // the logger
 )
 
-func init() {
+func initKeeper() {
 	keeperCmd := &cobra.Command{
 		Use:   "keeper",
 		Short: "Startup the secret keeper server",
@@ -59,7 +63,7 @@ func handleGetSecret(w http.ResponseWriter, r *http.Request, sr *SecretResponse)
 	}
 
 	l.Printf("Get secret %s", name)
-	sr.Secret = s
+	sr.Secret = s.Value
 }
 
 // handleSetSecret looks up the secret named in the request and sets it to the
@@ -85,7 +89,10 @@ func handleSetSecret(w http.ResponseWriter, r *http.Request, sr *SecretResponse)
 		return
 	}
 
-	err = k.SetSecret(sreq.Name, sreq.Secret)
+	err = k.SetSecret(&secrets.Secret{
+		Name:  sreq.Name,
+		Value: sreq.Secret,
+	})
 	if err != nil {
 		l.Printf("failed to store JSON request: %v", err)
 
@@ -127,12 +134,15 @@ func PingHandler(w http.ResponseWriter, r *http.Request) {
 func RunSecretKeeper(cmd *cobra.Command, args []string) {
 	l = log.New(os.Stderr, "", log.LstdFlags)
 
+	// my own paranoid in memory story
 	ik, err := secrets.NewInternal()
 	if err != nil {
 		panic(err)
 	}
 
-	rk := secrets.Keyring{}
+	// fallback to the system keyring, in case I decide some password can be
+	// safely stored there and protected by my login.
+	rk := secrets.NewKeyring(SecretServiceName)
 
 	lt := secrets.NewLocumTenens()
 	lt.AddKeeper(ik)

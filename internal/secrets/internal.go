@@ -58,23 +58,32 @@ func NewInternal() (*Internal, error) {
 }
 
 // GetSecret retrieves the named secret from the internal memory store.
-func (i *Internal) GetSecret(name string) (string, error) {
+func (i *Internal) GetSecret(name string) (*Secret, error) {
 	if s, ok := i.secrets[name]; ok {
 		ds, err := i.cipher.Open(nil, i.nonce, s, nil)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		return string(ds), nil
+		return &Secret{
+			Name:  name,
+			Value: string(ds),
+		}, nil
 	} else {
-		return "", ErrNotFound
+		return nil, ErrNotFound
 	}
 }
 
 // SetSecret saves the named secret to the given value in the internal memory
 // store.
-func (i *Internal) SetSecret(name, secret string) error {
-	s := []byte(secret)
+func (i *Internal) SetSecret(secret *Secret) error {
+	s := []byte(secret.Value)
 	es := i.cipher.Seal(nil, i.nonce, s, nil)
-	i.secrets[name] = es
+	i.secrets[secret.Name] = es
+	return nil
+}
+
+// RemoveSecret removes the named secret from the store.
+func (i *Internal) RemoveSecret(name string) error {
+	delete(i.secrets, name)
 	return nil
 }

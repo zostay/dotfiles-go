@@ -38,28 +38,31 @@ type GetSecretResponse struct {
 // to retrieve. If there is an error contacting the server, reading the response
 // from the server, or the server returns an error in the response, an error is
 // returned. Otherwise, the secret is returned.
-func (h *Http) GetSecret(name string) (string, error) {
+func (h *Http) GetSecret(name string) (*Secret, error) {
 	res, err := http.Get("http://" + h.baseURL + "/secret?name=" + url.QueryEscape(name))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	bs, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	var gsr GetSecretResponse
 	err = json.Unmarshal(bs, &gsr)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if gsr.Err != "" {
-		return "", ErrNotFound
+		return nil, ErrNotFound
 	}
 
-	return gsr.Secret, nil
+	return &Secret{
+		Name:  name,
+		Value: gsr.Secret,
+	}, nil
 }
 
 // SetSecretRequest is the structure of requests to the HTTP secret Keeper
@@ -81,8 +84,8 @@ type SetSecretResponse struct {
 // response, an error will be returned.
 //
 // On success, this function returns nil.
-func (h *Http) SetSecret(name, secret string) error {
-	ssr := SetSecretRequest{name, secret}
+func (h *Http) SetSecret(secret *Secret) error {
+	ssr := SetSecretRequest{secret.Name, secret.Value}
 	obs, err := json.Marshal(ssr)
 	if err != nil {
 		return err
@@ -110,6 +113,10 @@ func (h *Http) SetSecret(name, secret string) error {
 	}
 
 	return nil
+}
+
+func (h *Http) RemoveSecret(name string) error {
+	return errors.New("not implemented")
 }
 
 // Ping performs a ping request on the server and confirms that the answer from

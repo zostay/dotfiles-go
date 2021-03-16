@@ -29,7 +29,12 @@ func checkPing(ctx context.Context, n int) bool {
 				return
 			}
 
-			err := secrets.Master.Ping(ctx)
+			master, err := secrets.Master()
+			if err != nil {
+				return
+			}
+
+			err = master.(*secrets.Http).Ping(ctx)
 			ok := err == nil
 			pinger <- ok
 			time.Sleep(PingPeriod)
@@ -88,6 +93,8 @@ func startSecretKeeper() {
 		panic(fmt.Errorf("failure to release secret keeper daemon to background: %w", err))
 	}
 
+	// ping until we give up to be sure the keeper is finished startup in the
+	// background
 	ctx, cancel := context.WithTimeout(context.Background(), PingTimeout)
 	defer cancel()
 

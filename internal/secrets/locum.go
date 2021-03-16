@@ -30,14 +30,14 @@ func (l *LocumTenens) AddKeeper(k Keeper) {
 // GetSecret returns the first secret found by querying each wrapped Keeper. If
 // no keepers are wrapped or the secret is found in none of them, it returns
 // ErrNotFound.
-func (l *LocumTenens) GetSecret(name string) (string, error) {
+func (l *LocumTenens) GetSecret(name string) (*Secret, error) {
 	for _, k := range l.keepers {
 		s, err := k.GetSecret(name)
 		if err == nil {
 			return s, nil
 		}
 	}
-	return "", ErrNotFound
+	return nil, ErrNotFound
 }
 
 // SetSecret tries to store the secret in each Keeper in the ordered they were
@@ -45,12 +45,25 @@ func (l *LocumTenens) GetSecret(name string) (string, error) {
 // next keeper is tried until there's a success. Then the operation quits. If
 // there are zero Keepers or they all return errors, then this returns an error
 // as well.
-func (l *LocumTenens) SetSecret(name, secret string) error {
+func (l *LocumTenens) SetSecret(secret *Secret) error {
 	for _, k := range l.keepers {
-		err := k.SetSecret(name, secret)
+		err := k.SetSecret(secret)
 		if err == nil {
 			return nil
 		}
 	}
 	return errors.New("no secret keeper able to store secret")
+}
+
+// RemoveSecret removes the secret from each keeper.
+func (l *LocumTenens) RemoveSecret(name string) error {
+	var ferr error
+	for _, k := range l.keepers {
+		err := k.RemoveSecret(name)
+		if err != nil && ferr == nil {
+			ferr = err
+		}
+	}
+
+	return ferr
 }

@@ -1,19 +1,12 @@
 package main
 
 import (
-	"errors"
-
 	"github.com/spf13/cobra"
 
-	"github.com/zostay/dotfiles-go/internal/keeper"
 	"github.com/zostay/dotfiles-go/internal/secrets"
 )
 
-var (
-	setLocalOnly, setRemoteOnly, setMasterOnly bool
-)
-
-func init() {
+func initSet() {
 	setCmd := &cobra.Command{
 		Use:   "set",
 		Short: "Set a secret",
@@ -21,43 +14,19 @@ func init() {
 		RunE:  RunSetSecret,
 	}
 
-	setCmd.Flags().BoolVarP(&setLocalOnly, "local-only", "l", false, "create secret only in local database")
-	setCmd.Flags().BoolVarP(&setRemoteOnly, "remote-only", "r", false, "create secret only in remote database")
-	setCmd.Flags().BoolVarP(&setMasterOnly, "master", "m", false, "set the secret in the system keyring")
-
 	cmd.AddCommand(setCmd)
 }
 
 func RunSetSecret(cmd *cobra.Command, args []string) error {
-	keeper.RequiresSecretKeeper()
-
-	if setLocalOnly && setRemoteOnly || setLocalOnly && setMasterOnly || setRemoteOnly && setMasterOnly {
-		return errors.New("Only one of these options may be specified: --local-only/-l, --remote-only/-r, --master/-m")
-	}
-
-	ks := make([]secrets.Keeper, 0, 2)
-	if !setLocalOnly {
-		lp, err := secrets.NewLastPass()
-		if err != nil {
-			panic(err)
-		}
-
-		ks = append(ks, lp)
-	}
-
-	if !setRemoteOnly {
-		kp, err := secrets.NewKeepass()
-		if err != nil {
-			panic(err)
-		}
-
-		ks = append(ks, kp)
+	k, err := secretKeeper()
+	if err != nil {
+		panic(err)
 	}
 
 	name := args[0]
 	secret := args[1]
 
-	if setMasterOnly {
+	if masterOnly {
 		err := secrets.SetMasterPassword(name, secret)
 		if err != nil {
 			panic(err)
@@ -65,11 +34,12 @@ func RunSetSecret(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	for _, k := range ks {
-		err := k.SetSecret(name, secret)
-		if err != nil {
-			panic(err)
-		}
+	err = k.SetSecret(&secrets.Secret{
+		Name:  name,
+		Value: secret,
+	})
+	if err != nil {
+		panic(err)
 	}
 
 	return nil
