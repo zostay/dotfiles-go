@@ -1,6 +1,7 @@
 package secrets
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -102,4 +103,9 @@ func (c *Cacher) SetSecret(secret *Secret) error {
 	}
 
 	return nil
+}
+
+// RemoveSecret is a no-op. Don't call it. Always returns an error.
+func (c *Cacher) RemoveSecret(name string) error {
+	return errors.New("not implemented")
 }

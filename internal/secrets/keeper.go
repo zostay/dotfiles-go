@@ -213,6 +213,21 @@ func SecureMain() (Keeper, error) {
 	return rsecure, nil
 }
 
+// Secure returns my caching secret keeper for insecure secrets.
+func Insecure() (Keeper, error) {
+	src, err := InsecureMain()
+	if err != nil {
+		return nil, err
+	}
+
+	tgt, err := InsecureLocal()
+	if err != nil {
+		return nil, err
+	}
+
+	return NewCacher(src, tgt, 24*time.Hour), nil
+}
+
 // init sets up ZostayKeepassPath.
 func init() {
 	var err error
