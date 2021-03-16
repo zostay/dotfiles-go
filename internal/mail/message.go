@@ -13,13 +13,13 @@ import (
 	"github.com/zostay/go-addr/pkg/addr"
 	"github.com/zostay/go-email/pkg/email/mime"
 
-	"github.com/zostay/dotfiles-go/internal/dotfiles"
+	"github.com/zostay/dotfiles-go/internal/secrets"
 	"github.com/zostay/dotfiles-go/internal/xtrings"
 )
 
 var (
-	SASLUser = dotfiles.MustGetSecret("LABEL_MAIL_USERNAME")
-	SASLPass = dotfiles.MustGetSecret("LABEL_MAIL_PASSWORD")
+	SASLUser = secrets.MustGet(secrets.Secure, "LABEL_MAIL_USERNAME")
+	SASLPass = secrets.MustGet(secrets.Secure, "LABEL_MAIL_PASSWORD")
 )
 
 type Message struct {

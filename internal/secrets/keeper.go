@@ -246,6 +246,21 @@ func Secure() (Keeper, error) {
 	return NewCacher(src, tgt, 24*time.Hour), nil
 }
 
+// MustGet is a helper to allow you to quickly get a secret from a keeper.
+func MustGet(keeper func() (Keeper, error), name string) string {
+	k, err := keeper()
+	if err != nil {
+		panic(fmt.Errorf("unable to read secret %q: %w", name, err))
+	}
+
+	s, err := k.GetSecret(name)
+	if err != nil {
+		panic(fmt.Errorf("unable to read secret %q: %w", name, err))
+	}
+
+	return s.Value
+}
+
 // init sets up ZostayKeepassPath.
 func init() {
 	var err error

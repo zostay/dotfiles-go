@@ -14,7 +14,7 @@ import (
 	"github.com/zostay/go-addr/pkg/addr"
 	"github.com/zostay/go-email/pkg/email/mime"
 
-	"github.com/zostay/dotfiles-go/internal/dotfiles"
+	"github.com/zostay/dotfiles-go/internal/secrets"
 )
 
 const (
@@ -24,7 +24,7 @@ const (
 )
 
 var (
-	FromEmail = dotfiles.MustGetSecret("GIT_EMAIL_HOME")
+	FromEmail = secrets.MustGet(secrets.Secure, "GIT_EMAIL_HOME")
 
 	FromEmailAddress addr.AddressList
 )
