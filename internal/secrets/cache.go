@@ -69,7 +69,7 @@ func (c *Cacher) GetSecret(name string) (*Secret, error) {
 		timeout := time.Now().Add(c.timeout)
 		if !s.LastModified.IsZero() && s.LastModified.Before(timeout) {
 			res, err := c.sync(name)
-			if err != ErrNotFound {
+			if err == ErrNotFound {
 				return nil, ErrNotFound
 			} else if err != nil {
 				return s, nil

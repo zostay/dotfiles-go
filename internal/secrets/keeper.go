@@ -250,7 +250,7 @@ func Secure() (Keeper, error) {
 func MustGet(keeper func() (Keeper, error), name string) string {
 	k, err := keeper()
 	if err != nil {
-		panic(fmt.Errorf("unable to read secret %q: %w", name, err))
+		panic(fmt.Errorf("unable to load secret keeper: %w", err))
 	}
 
 	s, err := k.GetSecret(name)

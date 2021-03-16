@@ -44,7 +44,7 @@ func secretKeeper() (secrets.Keeper, error) {
 			var lp secrets.Keeper
 			var err error
 			if insecure {
-				lp, err = secrets.InsecureLocal()
+				lp, err = secrets.InsecureMain()
 			} else {
 				lp, err = secrets.SecureMain()
 			}
