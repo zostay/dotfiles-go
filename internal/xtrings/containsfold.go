@@ -24,6 +24,11 @@ func ContainsFold(s, substr string) bool {
 		return false
 	}
 
+	// If the substr is larger than the string, we ain't matchin' that either.
+	if len(s) < len(substr) {
+		return false
+	}
+
 	// Find a char that we can use to identify the first char we're looking for
 	// in the string.
 	var ofc rune
