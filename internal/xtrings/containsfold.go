@@ -3,7 +3,6 @@
 package xtrings
 
 import (
-	"strings"
 	"unicode"
 	"unicode/utf8"
 )
@@ -11,7 +10,8 @@ import (
 // ContainsFold looks for substrings in a case insensitive way. It attempts to
 // be fast.
 func ContainsFold(s, substr string) bool {
-	//fmt.Printf("%q contains %q ??\n", s, substr)
+	//fmt.Printf("%q == %q ?\n", s, substr)
+
 	// This code borrows bits from strings.EqualFold()
 
 	// All strings contain an empty substring
@@ -24,28 +24,29 @@ func ContainsFold(s, substr string) bool {
 		return false
 	}
 
-	// If the substr is larger than the string, we ain't matchin' that either.
-	if len(s) < len(substr) {
-		return false
-	}
+	// Be sure we have a full list of decoded runes to work with from the substr
+	subr := make([]rune, 0, len(substr))
+	for substr != "" {
+		var r rune
+		if substr[0] < utf8.RuneSelf {
+			r, substr = rune(substr[0]), substr[1:]
+		} else {
+			dr, size := utf8.DecodeRuneInString(substr)
+			r, substr = dr, substr[size:]
+		}
 
-	// Find a char that we can use to identify the first char we're looking for
-	// in the string.
-	var ofc rune
-	if substr[0] < utf8.RuneSelf {
-		ofc, substr = rune(substr[0]), substr[1:]
-	} else {
-		f, size := utf8.DecodeRuneInString(substr)
-		ofc, substr = f, substr[size:]
+		subr = append(subr, r)
 	}
-
-	sl := len(substr)
 
 	// Hunt until there's nothing left to search
+	matching := 0
 	for s != "" {
-		fc := ofc
+		// matched all? Happy!
+		if matching >= len(subr) {
+			return true
+		}
 
-		// Grabe the first char of what's remaining to compare it to the first
+		// Grab the first char of what's remaining to compare it to the first
 		// char of what we're looking for
 		var tc rune
 		if s[0] < utf8.RuneSelf {
@@ -55,13 +56,12 @@ func ContainsFold(s, substr string) bool {
 			tc, s = t, s[size:]
 		}
 
-		// Set this to true, if it's a match
-		try := false
+		//fmt.Printf("CHECK %c == %c ? (%d)\n", subr[matching], tc, matching)
 
 		// If the runes are equal, we have a match
-		if fc == tc {
-			//fmt.Printf("%c == %c\n", fc, tc)
-			try = true
+		if subr[matching] == tc {
+			matching++
+			continue
 		}
 
 		// They might be fold-equal, but they aren't identical. If they're
@@ -71,18 +71,15 @@ func ContainsFold(s, substr string) bool {
 		// do here. The downside is that we're going to iterate through folded
 		// chars on one of these and one might have more fold chars than the
 		// other. Oh well.)
-		if !try && tc < fc {
-			tc, fc = fc, tc
+		sr := subr[matching]
+		if tc < sr {
+			tc, sr = sr, tc
 		}
 
 		// ASCII? Take a short cut
-		if !try && tc < utf8.RuneSelf {
-			if 'A' <= fc && fc <= 'Z' && tc == fc+'a'-'A' {
-				//fmt.Printf("%c ~= %c (ASCII shortcut)\n", fc, tc)
-				try = true
-			} else {
-				// If it's ASCII and we didn't match, we're not going to, so move on
-				// to the next char.
+		if tc < utf8.RuneSelf {
+			if 'A' <= sr && sr <= 'Z' && tc == sr+'a'-'A' {
+				matching++
 				continue
 			}
 		}
@@ -96,30 +93,20 @@ func ContainsFold(s, substr string) bool {
 		// is equal to or greater than the char we're looking for (noting that
 		// we may have swapped these items a moment ago, but fold equivalence
 		// testing works either way.)
-		if !try {
-			f := unicode.SimpleFold(fc)
-			for f != fc && f < tc {
-				f = unicode.SimpleFold(f)
-			}
-
-			// If we ended up with equal rather than greater than, this will pass.
-			if f == tc {
-				try = true
-			}
+		r := unicode.SimpleFold(sr)
+		for r != sr && r < tc {
+			r = unicode.SimpleFold(r)
 		}
 
-		// We've flagged it as a try, so let's give it a shot using EqualFold on
-		// the substring of the remainder.
-		if try && strings.EqualFold(s[:sl], substr) {
-			//fmt.Printf("%q ~= %q\n", s[:sl], substr)
-			return true
-			//} else if try {
-			//	fmt.Printf("%q !~= %q\n", s[:sl], substr)
-			//} else {
-			//	fmt.Printf("HERE?\n")
+		// If we ended up with equal rather than greater than, this will pass.
+		if r == tc {
+			matching++
+			continue
 		}
+
+		// still here? no match
+		matching = 0
 	}
 
-	// We ran out of string to test: no joy.
-	return false
+	return matching >= len(subr)
 }
