@@ -137,6 +137,12 @@ func SecureLocal() (Keeper, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		err = SetMasterPassword(KeepassMasterKey, master)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Unable to save Keepass secret to Master store: %v", err)
+			return nil, err
+		}
 	}
 
 	return lsecure, nil
@@ -159,7 +165,7 @@ func setupLastPass() (string, string, error) {
 		}
 	}
 
-	p, err := GetMasterPassword("LastPass", "LASTPASS-MASTER-"+u)
+	p, err := GetMasterPassword("LastPass", LastPassMasterKeyPrefix+u)
 	if err != nil {
 		return "", "", err
 	}
@@ -170,7 +176,7 @@ func setupLastPass() (string, string, error) {
 // finishLastPass saves the master password. It should only be saved in the case
 // that it works, right?
 func finishLastPass(u, p string) {
-	err := SetMasterPassword("LASTPASS-MASTER-"+u, p)
+	err := SetMasterPassword(LastPassMasterKeyPrefix+u, p)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error keeping master password in memory.")
 	}

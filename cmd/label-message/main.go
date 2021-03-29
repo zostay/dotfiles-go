@@ -20,7 +20,7 @@ var (
 
 func init() {
 	cmd = &cobra.Command{
-		Use:   "label-message",
+		Use:   "label-message <folder> <filename>",
 		Short: "Sort a single email message",
 		Run:   RunLabelMessage,
 		Args:  cobra.ExactArgs(2),
