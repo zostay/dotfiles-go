@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/zostay/dotfiles-go/internal/secrets"
+	"github.com/zostay/dotfiles-go/pkg/secrets"
 )
 
 func initSet() {

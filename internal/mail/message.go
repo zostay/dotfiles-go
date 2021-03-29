@@ -13,8 +13,8 @@ import (
 	"github.com/zostay/go-addr/pkg/addr"
 	"github.com/zostay/go-email/pkg/email/mime"
 
-	"github.com/zostay/dotfiles-go/internal/secrets"
 	"github.com/zostay/dotfiles-go/internal/xtrings"
+	"github.com/zostay/dotfiles-go/pkg/secrets"
 )
 
 var (

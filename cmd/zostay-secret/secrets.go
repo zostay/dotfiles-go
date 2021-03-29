@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/zostay/dotfiles-go/internal/keeper"
-	"github.com/zostay/dotfiles-go/internal/secrets"
+	"github.com/zostay/dotfiles-go/pkg/secrets"
 )
 
 func secretKeeper() (secrets.Keeper, error) {

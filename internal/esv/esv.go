@@ -6,7 +6,7 @@ import (
 
 	"github.com/zostay/go-esv-api/pkg/esv"
 
-	"github.com/zostay/dotfiles-go/internal/secrets"
+	"github.com/zostay/dotfiles-go/pkg/secrets"
 )
 
 func RandomBook() Book {

@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/zostay/dotfiles-go/internal/secrets"
+	"github.com/zostay/dotfiles-go/pkg/secrets"
 )
 
 const (
