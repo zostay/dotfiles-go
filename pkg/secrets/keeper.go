@@ -24,6 +24,7 @@ package secrets
 import (
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path"
 	"time"
@@ -234,7 +235,7 @@ func Insecure() (Keeper, error) {
 		return nil, err
 	}
 
-	return NewCacher(src, tgt, 24*time.Hour), nil
+	return NewCacher(src, tgt, math.MaxInt64), nil
 }
 
 // Secure returns my caching secret keeper for secure secrets.
@@ -249,7 +250,7 @@ func Secure() (Keeper, error) {
 		return nil, err
 	}
 
-	return NewCacher(src, tgt, 24*time.Hour), nil
+	return NewCacher(src, tgt, math.MaxInt64), nil
 }
 
 // MustGet is a helper to allow you to quickly get a secret from a keeper.
