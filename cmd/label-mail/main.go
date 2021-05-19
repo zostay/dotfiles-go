@@ -75,6 +75,13 @@ func RunLabelMail(cmd *cobra.Command, args []string) {
 		defer pprof.StopCPUProfile()
 	}
 
+	if vacuumFirst {
+		err := filter.Vacuum()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	}
+
 	actions, err := filter.LabelMessages(folders)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
