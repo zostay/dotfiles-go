@@ -1,6 +1,7 @@
 package mail
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"strings"
@@ -66,7 +67,7 @@ func hasUnwantedKeyword(msg *Message) ([]string, string, error) {
 
 // Vacuum performs the vacuum operation which attempts to clean up undesireable
 // folder and keywords from my mail root.
-func (fi *Filter) Vacuum(logf func(fmt string, opts ...interface{})) error {
+func (fi *Filter) Vacuum() error {
 	folders, err := fi.AllFolders()
 	if err != nil {
 		return err
@@ -74,7 +75,12 @@ func (fi *Filter) Vacuum(logf func(fmt string, opts ...interface{})) error {
 
 	for _, folder := range folders {
 		if isUnwanted(folder) {
-			logf("Droppping %s", folder)
+			cp.Fcolor(os.Stderr,
+				"dropping", "🗑DROPPING",
+				"meh", ": ",
+				"label", folder,
+				"meh", "\n",
+			)
 
 			msgs, err := fi.Messages(folder)
 			if err != nil {
@@ -102,22 +108,42 @@ func (fi *Filter) Vacuum(logf func(fmt string, opts ...interface{})) error {
 					return err
 				}
 
-				logf(" -> Moved %s to %s", folder, other)
+				cp.Fcolor(os.Stderr,
+					"moving", "⇒ Moving ",
+					"label", folder,
+					"meh", " to ",
+					"label", other,
+					"meh", "\n",
+				)
 			}
 
 			deadFolder := path.Join(fi.MailRoot, folder)
 			for _, sd := range []string{"new", "cur", "tmp"} {
 				err = os.Remove(path.Join(deadFolder, sd))
 				if err != nil {
-					logf("WARNING: cannot delete %s/%s: %+v", deadFolder, sd, err)
+					cp.Fcolor(os.Stderr,
+						"warn", "❗WARNING ",
+						"meh", ": cannot delete ",
+						"file", fmt.Sprintf("%s/%s", deadFolder, sd),
+						"meh", fmt.Sprintf(": %+v\n", err),
+					)
 				}
 			}
 			err = os.Remove(deadFolder)
 			if err != nil {
-				logf("WARNING: cannot delete %s: %+v", deadFolder, err)
+				cp.Fcolor(os.Stderr,
+					"warn", "❗WARNING ",
+					"meh", ": cannot delete ",
+					"file", fmt.Sprintf("%s", deadFolder),
+					"meh", fmt.Sprintf(": %+v\n", err),
+				)
 			}
 		} else {
-			logf("Searching %s for broken Keywords.", folder)
+			cp.Fcolor(os.Stderr,
+				"searching", "🔍 Searching ",
+				"label", folder,
+				"meh", " for broken Keywords.\n",
+			)
 
 			msgs, err := fi.Messages(folder)
 			if err != nil {
@@ -133,7 +159,10 @@ func (fi *Filter) Vacuum(logf func(fmt string, opts ...interface{})) error {
 					return err
 				}
 				if nonconforming {
-					logf("Fixing non-conforming keywords.")
+					cp.Fcolor(os.Stderr,
+						"fixing", "🔧 Fixing ",
+						"meh", "non-conforming keywords.\n",
+					)
 					err := msg.CleanupKeywords()
 					if err != nil {
 						return err
@@ -147,7 +176,14 @@ func (fi *Filter) Vacuum(logf func(fmt string, opts ...interface{})) error {
 					return err
 				}
 				if len(unwanted) > 0 {
-					logf("Fixing (%s) to %s.", strings.Join(unwanted, ", "), wanted)
+					cp.Fcolor(os.Stderr,
+						"fixing", "🔧 Fixing ",
+						"meh", "(",
+						"label", strings.Join(unwanted, ", "),
+						"meh", " to ",
+						"label", wanted,
+						"meh", ".\n",
+					)
 					change++
 					err := msg.RemoveKeyword(unwanted...)
 					if err != nil {

@@ -27,6 +27,9 @@ var (
 		"forwarding": color.New(color.FgHiYellow),
 		"moving":     color.New(color.FgHiCyan),
 		"clearing":   color.New(color.FgHiBlue),
+		"dropping":   color.New(color.FgHiYellow),
+		"searching":  color.New(color.FgHiMagenta),
+		"fixing":     color.New(color.FgHiCyan),
 	}
 )
 

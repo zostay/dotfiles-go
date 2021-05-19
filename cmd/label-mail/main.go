@@ -24,6 +24,7 @@ var (
 	folders      []string
 	allowSending bool
 	cpuprofile   string
+	vacuumFirst  bool
 )
 
 func init() {
@@ -42,6 +43,7 @@ func init() {
 	cmd.PersistentFlags().StringSliceVarP(&folders, "folder", "f", []string{}, "select folders to filter")
 	cmd.PersistentFlags().BoolVarP(&allowSending, "allow-forwarding", "e", false, "allow email forwarding rules to run")
 	cmd.PersistentFlags().StringVar(&cpuprofile, "cpuprofile", "", "write CPU profile to `file`")
+	cmd.PersistentFlags().BoolVarP(&vacuumFirst, "vacuum-first", "v", false, "vacuum the Mail directory before filtering")
 }
 
 func RunLabelMail(cmd *cobra.Command, args []string) {
