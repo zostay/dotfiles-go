@@ -134,7 +134,7 @@ func (fi *Filter) Vacuum() error {
 				cp.Fcolor(os.Stderr,
 					"warn", "❗WARNING ",
 					"meh", ": cannot delete ",
-					"file", fmt.Sprintf("%s", deadFolder),
+					"file", deadFolder,
 					"meh", fmt.Sprintf(": %+v\n", err),
 				)
 			}
