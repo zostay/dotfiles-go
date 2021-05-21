@@ -240,17 +240,24 @@ func Insecure() (Keeper, error) {
 
 // Secure returns my caching secret keeper for secure secrets.
 func Secure() (Keeper, error) {
-	src, err := SecureMain()
-	if err != nil {
-		return nil, err
-	}
+	// src, err := SecureMain()
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// tgt, err := SecureLocal()
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// return NewCacher(src, tgt, math.MaxInt64), nil
 
 	tgt, err := SecureLocal()
 	if err != nil {
 		return nil, err
 	}
 
-	return NewCacher(src, tgt, math.MaxInt64), nil
+	return tgt, nil
 }
 
 // MustGet is a helper to allow you to quickly get a secret from a keeper.
