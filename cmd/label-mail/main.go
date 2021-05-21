@@ -25,6 +25,7 @@ var (
 	allowSending bool
 	cpuprofile   string
 	vacuumFirst  bool
+	vacuumOnly   bool
 )
 
 func init() {
@@ -44,6 +45,7 @@ func init() {
 	cmd.PersistentFlags().BoolVarP(&allowSending, "allow-forwarding", "e", false, "allow email forwarding rules to run")
 	cmd.PersistentFlags().StringVar(&cpuprofile, "cpuprofile", "", "write CPU profile to `file`")
 	cmd.PersistentFlags().BoolVar(&vacuumFirst, "vacuum-first", false, "vacuum the Mail directory before filtering")
+	cmd.PersistentFlags().BoolVar(&vacuumOnly, "vacuum-only", false, "vacuum the Mail directory without filtering")
 }
 
 func RunLabelMail(cmd *cobra.Command, args []string) {
@@ -75,6 +77,10 @@ func RunLabelMail(cmd *cobra.Command, args []string) {
 		defer pprof.StopCPUProfile()
 	}
 
+	if vacuumOnly {
+		vacuumFirst = true
+	}
+
 	if vacuumFirst {
 		err := filter.Vacuum()
 		if err != nil {
@@ -82,9 +88,12 @@ func RunLabelMail(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	actions, err := filter.LabelMessages(folders)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+	var actions mail.ActionsSummary
+	if !vacuumOnly {
+		actions, err = filter.LabelMessages(folders)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
 	}
 
 	fmt.Print(actions)

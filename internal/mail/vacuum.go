@@ -76,7 +76,7 @@ func (fi *Filter) Vacuum() error {
 	for _, folder := range folders {
 		if isUnwanted(folder) {
 			cp.Fcolor(os.Stderr,
-				"dropping", "🗑DROPPING",
+				"dropping", "🗑 DROPPING",
 				"meh", ": ",
 				"label", folder,
 				"meh", "\n",

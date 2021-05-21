@@ -156,22 +156,12 @@ func (m *Message) MissingKeyword(names ...string) (bool, error) {
 }
 
 func (m *Message) CleanupKeywords() error {
-	ks, err := m.Keywords()
+	km, err := m.KeywordsSet()
 	if err != nil {
 		return err
 	}
 
-	h, err := m.EmailMessage()
-	if err != nil {
-		return err
-	}
-
-	err = h.HeaderSet("Keywords", strings.Join(ks, " "))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return m.updateKeywords(km)
 }
 
 func (m *Message) AddKeyword(names ...string) error {
@@ -208,7 +198,7 @@ func (m *Message) updateKeywords(km map[string]struct{}) error {
 
 	sort.Strings(ks)
 
-	err = mm.HeaderSet("Keywords", strings.Join(ks, ", "))
+	err = mm.HeaderSet("Keywords", strings.Join(ks, " "))
 	if err != nil {
 		return err
 	}
@@ -744,7 +734,7 @@ func (m *Message) BestAlternateFolder() (string, error) {
 		return "", err
 	}
 
-	if len(ks[0]) > 0 && strings.Contains(ks[0], "Social") {
+	if len(ks) > 0 && strings.Contains(ks[0], "Social") {
 		return "JunkSocial", nil
 	}
 
