@@ -66,7 +66,7 @@ func (c *Cacher) sync(name string) (*Secret, error) {
 func (c *Cacher) GetSecret(name string) (*Secret, error) {
 	s, err := c.target.GetSecret(name)
 	if err == nil {
-		timeout := time.Now().Add(c.timeout)
+		timeout := time.Now().Add(-c.timeout)
 		if !s.LastModified.IsZero() && s.LastModified.Before(timeout) {
 			res, err := c.sync(name)
 			if err == ErrNotFound {
