@@ -1,6 +1,7 @@
 package secrets
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -54,4 +55,38 @@ func TestCacheDownstream(t *testing.T) {
 
 	assert.Equal(t, "upstream", s2.Name, "got upstream secret name copied to target")
 	assert.Equal(t, "secret", s2.Value, "got upstream secret value copied to target")
+}
+
+type getdeathkeeper struct{}
+
+func (getdeathkeeper) GetSecret(name string) (*Secret, error) {
+	return nil, errors.New("death")
+}
+func (getdeathkeeper) SetSecret(secret *Secret) error { return nil }
+func (getdeathkeeper) RemoveSecret(name string) error { return nil }
+
+func TestCacheDependence(t *testing.T) {
+	src := getdeathkeeper{}
+
+	tgt, err := NewInternal()
+	require.NoError(t, err, "no error creating another internal")
+
+	cch := NewCacher(src, tgt, 24*time.Hour)
+
+	err = tgt.SetSecret(
+		&Secret{
+			Name:  "downstream",
+			Value: "terces",
+		},
+	)
+	require.NoError(t, err, "no error setting on target")
+
+	s, err := cch.GetSecret("downstream")
+
+	// This proves that the secret was retrieved from the target without
+	// touching the source.
+	require.NoError(t, err, "no error getting on cacher")
+
+	assert.Equal(t, "downstream", s.Name, "got downstream secret name")
+	assert.Equal(t, "terces", s.Value, "got downstream secret value")
 }
