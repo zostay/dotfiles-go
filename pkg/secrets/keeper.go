@@ -41,7 +41,7 @@ const (
 	LastPassEnvFile         = ".zshrc.local"            // where to find the LPASS_USERNAME
 	LastPassUserEnvKey      = "LPASS_USERNAME"          // environment file key with LastPass username set
 
-	ZostayKeepassFile = ".zostay.kbdx" // name of my keepass file
+	ZostayKeepassFile = ".zostay.kdbx" // name of my keepass file
 
 	ZostayLowSecuritySecretsFile = ".secrets.yaml" // where to store low security secrets
 )
