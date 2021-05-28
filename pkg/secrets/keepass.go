@@ -127,8 +127,8 @@ func (w *KeepassWalker) Next() bool {
 				w.groups.PushBack(sg)
 			}
 
-			for _, se := range g.Entries {
-				eg := EntryGroup{&g, &se}
+			for i := range g.Entries {
+				eg := EntryGroup{&g, &g.Entries[i]}
 				w.entries.PushBack(eg)
 			}
 
