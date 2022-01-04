@@ -270,14 +270,14 @@ func (fi *Filter) LabelFolderMessages(
 		// Purged, leave it be
 		has, err := msg.HasKeyword("\\Trash")
 		if err != nil {
-			return fmt.Errorf("error in %q: %v", msg.Filename(), err)
+			return fmt.Errorf("error (skipping Trashed) in %q: %v", msg.Filename(), err)
 		} else if has {
 			continue
 		}
 
 		as, err := fi.ApplyRules(msg, rules)
 		if err != nil {
-			return fmt.Errorf("error in %q: %v", msg.Filename(), err)
+			return fmt.Errorf("error (applying rules) in %q: %v", msg.Filename(), err)
 		}
 
 		for _, a := range as {
