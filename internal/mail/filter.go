@@ -290,6 +290,15 @@ func (fi *Filter) LabelFolderMessages(
 
 // ApplyRules applies all the rules to a single mail message.
 func (fi *Filter) ApplyRules(msg *Message, rules []*CompiledRule) ([]string, error) {
+	defer func() {
+		// make sure that panics include the path ot the message that triggered
+		// the panic, otherwise finding the cause is 2^20x harder.
+		if r := recover(); r != nil {
+			err := fmt.Errorf("While processing %q: %w", msg.Filename(), r)
+			panic(err)
+		}
+	}()
+
 	actions := make([]string, 0)
 	for _, cr := range rules {
 		as, err := fi.ApplyRule(msg, cr)
