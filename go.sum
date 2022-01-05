@@ -308,6 +308,8 @@ github.com/zostay/go-addr v0.0.0-20210219053543-2c79a4ed235b h1:dvEPCgIktzYVwH2U
 github.com/zostay/go-addr v0.0.0-20210219053543-2c79a4ed235b/go.mod h1:OaRM8yyhoMpJUM4pnYzyiSOSX1eydsMaQlXkCVHWep0=
 github.com/zostay/go-addr v0.0.0-20210306035107-8377abe8b98a h1:sFePX3ch0YmzaVDems3rdEt6xWfHurpQHohNQavWU0o=
 github.com/zostay/go-addr v0.0.0-20210306035107-8377abe8b98a/go.mod h1:tG7AdJGatrC29Uncw2yXm2aGe5/wuT/WaRsPg+83ynU=
+github.com/zostay/go-addr v0.0.0-20220105211316-2b86a76c0730 h1:C9gZTiShrNiAANu1MnCqf42H3KeHLtxgL/nYFNzLugI=
+github.com/zostay/go-addr v0.0.0-20220105211316-2b86a76c0730/go.mod h1:tG7AdJGatrC29Uncw2yXm2aGe5/wuT/WaRsPg+83ynU=
 github.com/zostay/go-email v0.0.0-20210219025259-2eae94fa9725 h1:/OpDUPR5newrHIZgruU0EYns5c41YcoGudEXKgay6w8=
 github.com/zostay/go-email v0.0.0-20210219025259-2eae94fa9725/go.mod h1:Jq91kl8e5l2q6yWl545QETDHLCYHKXVsg9qcv+oODOA=
 github.com/zostay/go-email v0.0.0-20210220042620-dace31642cf6 h1:hZIfqfTqeV8emmWXe6F5nuWBp0/oC3PSQ04hiNa5Rlg=

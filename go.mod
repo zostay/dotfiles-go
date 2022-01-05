@@ -20,7 +20,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/tobischo/gokeepasslib/v3 v3.1.0
 	github.com/zalando/go-keyring v0.1.0
-	github.com/zostay/go-addr v0.0.0-20210306035107-8377abe8b98a
+	github.com/zostay/go-addr v0.0.0-20220105211316-2b86a76c0730
 	github.com/zostay/go-email v0.0.0-20220104033538-5814833e1c4c
 	github.com/zostay/go-esv-api v0.0.0-20201114154340-be89d3d9bb0c
 	golang.org/x/net v0.0.0-20201021035429-f5854403a974 // indirect
