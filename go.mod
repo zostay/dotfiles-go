@@ -21,7 +21,7 @@ require (
 	github.com/tobischo/gokeepasslib/v3 v3.1.0
 	github.com/zalando/go-keyring v0.1.0
 	github.com/zostay/go-addr v0.0.0-20220105211316-2b86a76c0730
-	github.com/zostay/go-email v0.0.0-20220104033538-5814833e1c4c
+	github.com/zostay/go-email v0.0.0-20220317163434-3922e3553e84
 	github.com/zostay/go-esv-api v0.0.0-20201114154340-be89d3d9bb0c
 	golang.org/x/net v0.0.0-20201021035429-f5854403a974 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776

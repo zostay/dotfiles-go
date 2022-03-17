@@ -227,6 +227,15 @@ func (m *Message) RemoveKeyword(names ...string) error {
 	return m.updateKeywords(km)
 }
 
+func (m *Message) AllAddressLists(key string) (addr.AddressList, error) {
+	mm, err := m.EmailMessage()
+	if err != nil {
+		return nil, err
+	}
+
+	return mm.HeaderGetAllAddressLists(key)
+}
+
 func (m *Message) AddressList(key string) (addr.AddressList, error) {
 	mm, err := m.EmailMessage()
 	if err != nil {
@@ -441,7 +450,7 @@ var (
 
 			(*tests)++
 
-			deliveredTo, err := m.AddressList("Delivered-To")
+			deliveredTo, err := m.AllAddressLists("Delivered-To")
 			return testAddress("Delivered-To", "delivered_to", c.DeliveredTo, deliveredTo, err)
 		},
 
