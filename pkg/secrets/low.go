@@ -46,13 +46,13 @@ func (s *LowSecurity) loadSecrets() (map[string]string, error) {
 }
 
 // saveSecrets saves the secrets to file.
-func (k *LowSecurity) saveSecrets(s map[string]string) error {
-	out, err := yaml.Marshal(s)
+func (s *LowSecurity) saveSecrets(ss map[string]string) error {
+	out, err := yaml.Marshal(ss)
 	if err != nil {
 		return err
 	}
 
-	w, err := k.Saver()
+	w, err := s.Saver()
 	if err != nil {
 		return err
 	}
