@@ -18,15 +18,15 @@ type MailDirSlurper struct {
 	key    string
 	flags  string
 	rd     string
-	folder *MailDirFolder
+	folder *DirFolder
 	fi     *os.FileInfo
 }
 
-func NewMailDirSlurper(key, flags, rd string, folder *MailDirFolder) *MailDirSlurper {
+func NewMailDirSlurper(key, flags, rd string, folder *DirFolder) *MailDirSlurper {
 	return &MailDirSlurper{key, flags, rd, folder, nil}
 }
 
-func NewMailDirSlurperWithStat(key, flags, rd string, folder *MailDirFolder, fi *os.FileInfo) *MailDirSlurper {
+func NewMailDirSlurperWithStat(key, flags, rd string, folder *DirFolder, fi *os.FileInfo) *MailDirSlurper {
 	return &MailDirSlurper{key, flags, rd, folder, fi}
 }
 
@@ -61,7 +61,7 @@ func (r *MailDirSlurper) Folder() string {
 	return r.folder.Basename()
 }
 
-func (r *MailDirSlurper) MoveTo(target *MailDirFolder) error {
+func (r *MailDirSlurper) MoveTo(target *DirFolder) error {
 	targetFile := path.Join(target.Path(), r.rd, r.key+r.FlagSuffix())
 	err := os.Rename(r.Filename(), targetFile)
 	if err != nil {

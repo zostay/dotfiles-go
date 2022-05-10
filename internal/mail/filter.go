@@ -84,7 +84,7 @@ func (fi *Filter) LimitSince() time.Time {
 }
 
 // folder constructs a NewMailDirFolder for the named folder in the mail root.
-func (fi *Filter) folder(folder string) *MailDirFolder {
+func (fi *Filter) folder(folder string) *DirFolder {
 	return NewMailDirFolder(fi.MailRoot, folder)
 }
 

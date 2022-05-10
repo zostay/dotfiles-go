@@ -31,12 +31,12 @@ func NewMessage(r Slurper) *Message {
 	return &Message{r: r}
 }
 
-func NewMailDirMessage(key, flags, rd string, folder *MailDirFolder) *Message {
+func NewMailDirMessage(key, flags, rd string, folder *DirFolder) *Message {
 	r := NewMailDirSlurper(key, flags, rd, folder)
 	return NewMessage(r)
 }
 
-func NewMailDirMessageWithStat(key, flags, rd string, folder *MailDirFolder, fi *os.FileInfo) *Message {
+func NewMailDirMessageWithStat(key, flags, rd string, folder *DirFolder, fi *os.FileInfo) *Message {
 	r := NewMailDirSlurperWithStat(key, flags, rd, folder, fi)
 	return NewMessage(r)
 }

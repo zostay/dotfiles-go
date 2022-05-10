@@ -7,31 +7,31 @@ import (
 	"strings"
 )
 
-// MailDirFolder represents a single maildir folder in a mail root.
-type MailDirFolder struct {
+// DirFolder represents a single maildir folder in a mail root.
+type DirFolder struct {
 	root     string
 	basename string
 }
 
-// NewMailDirFolder constructs a MailDirFolder from a mail root and folder name.
-func NewMailDirFolder(root, folder string) *MailDirFolder {
-	return &MailDirFolder{root, folder}
+// NewMailDirFolder constructs a DirFolder from a mail root and folder name.
+func NewMailDirFolder(root, folder string) *DirFolder {
+	return &DirFolder{root, folder}
 }
 
 // Root returns the path to the mail root.
-func (f *MailDirFolder) Root() string { return f.root }
+func (f *DirFolder) Root() string { return f.root }
 
 // Basename returns the folder name.
-func (f *MailDirFolder) Basename() string { return f.basename }
+func (f *DirFolder) Basename() string { return f.basename }
 
 // Path returns the full path to the maildir folder.
-func (f *MailDirFolder) Path() string {
+func (f *DirFolder) Path() string {
 	return path.Join(f.root, f.basename)
 }
 
 // MessageDirPaths returns the directory paths that contain message files that
 // can be worked with by these mail tools.
-func (f *MailDirFolder) MessageDirPaths() []string {
+func (f *DirFolder) MessageDirPaths() []string {
 	return []string{
 		path.Join(f.root, f.basename, "new"),
 		path.Join(f.root, f.basename, "cur"),
@@ -40,12 +40,12 @@ func (f *MailDirFolder) MessageDirPaths() []string {
 
 // TempDirPath returns the directory path where messages being worked on are
 // stored temporarily.
-func (f *MailDirFolder) TempDirPath() string {
+func (f *DirFolder) TempDirPath() string {
 	return path.Join(f.root, f.basename, "tmp")
 }
 
 // message combines the common code of Message and Messages.
-func (f *MailDirFolder) message(rd, fn string, fi os.FileInfo) *Message {
+func (f *DirFolder) message(rd, fn string, fi os.FileInfo) *Message {
 	var key, flags string
 	if strings.ContainsRune(fi.Name(), ':') {
 		parts := strings.SplitN(fi.Name(), ":", 2)
@@ -59,7 +59,7 @@ func (f *MailDirFolder) message(rd, fn string, fi os.FileInfo) *Message {
 }
 
 // Message returns a single mail message object stored in the given file name.
-func (f *MailDirFolder) Message(fn string) (*Message, error) {
+func (f *DirFolder) Message(fn string) (*Message, error) {
 	for _, dir := range f.MessageDirPaths() {
 		rd := path.Base(dir)
 		msgPath := path.Join(dir, fn)
@@ -75,7 +75,7 @@ func (f *MailDirFolder) Message(fn string) (*Message, error) {
 }
 
 // Messages returns all mail messages stored in the maildir.
-func (f *MailDirFolder) Messages() ([]*Message, error) {
+func (f *DirFolder) Messages() ([]*Message, error) {
 	var ms []*Message
 
 	fism := make(map[string][]os.FileInfo)
