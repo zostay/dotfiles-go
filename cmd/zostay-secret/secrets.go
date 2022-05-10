@@ -32,7 +32,7 @@ func secretKeeper() (secrets.Keeper, error) {
 	keeper.RequiresSecretKeeper()
 
 	if localOnly && remoteOnly || localOnly && masterOnly || remoteOnly && masterOnly {
-		return nil, errors.New("Only one of these options may be specified: --local-only/-l, --remote-only/-r, --master/-m")
+		return nil, errors.New("only one of these options may be specified: --local-only/-l, --remote-only/-r, --master/-m")
 	}
 
 	var k secrets.Keeper

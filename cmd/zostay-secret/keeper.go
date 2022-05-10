@@ -39,7 +39,7 @@ type SecretRequest struct {
 	Secret string // the secret value to set
 }
 
-// SecretRespones respresents the response to a secret request.
+// SecretResponse respresents the response to a secret request.
 type SecretResponse struct {
 	Err    string `json:",omitempty"` // set if there's an error
 	Secret string `json:",omitempty"` // set during get on success

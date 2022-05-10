@@ -20,7 +20,7 @@ type Http struct {
 	baseURL string
 }
 
-// Create a new Http Keeper.
+// NewHttp creates a new Http Keeper.
 func NewHttp() *Http {
 	return &Http{
 		baseURL: MySecretKeeper,
@@ -72,7 +72,7 @@ type SetSecretRequest struct {
 	Secret string
 }
 
-// SetSecretRespones is the structure of responess from the HTTP secret Keeper
+// SetSecretResponse is the structure of responess from the HTTP secret Keeper
 // server.
 type SetSecretResponse struct {
 	Err string
