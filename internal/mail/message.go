@@ -368,7 +368,7 @@ var (
 				return testResult{true, cp.Scolor("base", "no okay date")}, nil
 			}
 
-			(*tests)++
+			*tests++
 
 			date, err := m.Date()
 			if date.Before(c.OkayDate) {
@@ -393,7 +393,7 @@ var (
 				return testResult{true, cp.Scolor("base", "no from test")}, nil
 			}
 
-			(*tests)++
+			*tests++
 
 			from, err := m.AddressList("From")
 			return testAddress("From", "from", c.From, from, err)
@@ -404,7 +404,7 @@ var (
 				return testResult{true, cp.Scolor("base", "no from domain test")}, nil
 			}
 
-			(*tests)++
+			*tests++
 
 			from, err := m.AddressList("From")
 			return testDomain("From", "from", c.FromDomain, from, err)
@@ -415,7 +415,7 @@ var (
 				return testResult{true, cp.Scolor("base", "no to test")}, nil
 			}
 
-			(*tests)++
+			*tests++
 
 			to, err := m.AddressList("To")
 			return testAddress("To", "to", c.To, to, err)
@@ -426,7 +426,7 @@ var (
 				return testResult{true, cp.Scolor("base", "no to domain test")}, nil
 			}
 
-			(*tests)++
+			*tests++
 
 			to, err := m.AddressList("To")
 			return testDomain("To", "to", c.ToDomain, to, err)
@@ -437,7 +437,7 @@ var (
 				return testResult{true, cp.Scolor("base", "no sender test")}, nil
 			}
 
-			(*tests)++
+			*tests++
 
 			sender, err := m.AddressList("Sender")
 			return testAddress("Sender", "sender", c.Sender, sender, err)
@@ -448,7 +448,7 @@ var (
 				return testResult{true, cp.Scolor("base", "no delivered_to test")}, nil
 			}
 
-			(*tests)++
+			*tests++
 
 			deliveredTo, err := m.AllAddressLists("Delivered-To")
 			return testAddress("Delivered-To", "delivered_to", c.DeliveredTo, deliveredTo, err)
@@ -459,7 +459,7 @@ var (
 				return testResult{true, cp.Scolor("base", "no exact subject test")}, nil
 			}
 
-			(*tests)++
+			*tests++
 
 			subject, err := m.Subject()
 			if c.Subject != subject {
@@ -488,7 +488,7 @@ var (
 				return testResult{true, cp.Scolor("base", "no folded case subject test")}, nil
 			}
 
-			(*tests)++
+			*tests++
 
 			subject, err := m.Subject()
 			if !strings.EqualFold(c.SubjectFold, subject) {
@@ -517,7 +517,7 @@ var (
 				return testResult{true, cp.Scolor("base", "no subject contains test")}, nil
 			}
 
-			(*tests)++
+			*tests++
 
 			subject, err := m.Subject()
 			if !strings.Contains(subject, c.SubjectContains) {
@@ -546,7 +546,7 @@ var (
 				return testResult{true, cp.Scolor("base", "no subject contains subject folded case test")}, nil
 			}
 
-			(*tests)++
+			*tests++
 
 			subject, err := m.Subject()
 			if !xtrings.ContainsFold(subject, c.SubjectContainsFold) {
@@ -575,7 +575,7 @@ var (
 				return testResult{true, cp.Scolor("base", "no contains anywhere test")}, nil
 			}
 
-			(*tests)++
+			*tests++
 
 			bs, err := m.Raw()
 			if !strings.Contains(string(bs), c.Contains) {
@@ -600,7 +600,7 @@ var (
 				return testResult{true, cp.Scolor("base", "no contains anywhere folded case test")}, nil
 			}
 
-			(*tests)++
+			*tests++
 
 			bs, err := m.Raw()
 			if !xtrings.ContainsFold(string(bs), c.ContainsFold) {

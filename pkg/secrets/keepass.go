@@ -261,7 +261,7 @@ func (k *Keepass) SetSecret(secret *Secret) error {
 		}
 
 		e := k.getEntry(g, secret.Name)
-		isnew := (e == nil)
+		isnew := e == nil
 		if isnew {
 			newe := keepass.NewEntry()
 			e = &newe

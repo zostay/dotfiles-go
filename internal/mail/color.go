@@ -42,15 +42,15 @@ func (cp ColorPalette) Join(color string, args []string, d string) string {
 }
 
 func (cp ColorPalette) Fcolor(out io.Writer, args ...string) {
-	color := "base"
+	cname := "base"
 	for i, v := range args {
 		if i%2 == 0 {
-			color = v
+			cname = v
 		} else {
-			if c, ok := cp[color]; ok {
+			if c, ok := cp[cname]; ok {
 				c.Fprint(out, v)
 			} else {
-				panic("unknown color " + color)
+				panic("unknown color " + cname)
 			}
 		}
 	}
@@ -58,15 +58,15 @@ func (cp ColorPalette) Fcolor(out io.Writer, args ...string) {
 
 func (cp ColorPalette) Scolor(args ...string) string {
 	var out strings.Builder
-	color := "base"
+	cname := "base"
 	for i, v := range args {
 		if i%2 == 0 {
-			color = v
+			cname = v
 		} else {
-			if c, ok := cp[color]; ok {
+			if c, ok := cp[cname]; ok {
 				c.Fprint(&out, v)
 			} else {
-				panic("unknown color " + color)
+				panic("unknown cname " + cname)
 			}
 		}
 	}

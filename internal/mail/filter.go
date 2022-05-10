@@ -10,6 +10,8 @@ import (
 	"github.com/zostay/dotfiles-go/internal/dotfiles"
 )
 
+type skip = struct{}
+
 var (
 	// labelBoxes is the map between Gmail's keywords and the special IMAP
 	// folders synced by offlineimap
@@ -30,10 +32,10 @@ var (
 
 	// SkipFolder lists folders that are never filtered.
 	SkipFolder = map[string]struct{}{
-		"gmail.Spam":      struct{}{},
-		"gmail.Draft":     struct{}{},
-		"gmail.Trash":     struct{}{},
-		"gmail.Sent_Mail": struct{}{},
+		"gmail.Spam":      skip{},
+		"gmail.Draft":     skip{},
+		"gmail.Trash":     skip{},
+		"gmail.Sent_Mail": skip{},
 	}
 )
 
