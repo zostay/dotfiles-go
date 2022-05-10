@@ -20,9 +20,18 @@ var (
 	// UnwantedKeyword mentions remaps of folders we want to apply during
 	// vacuuming.
 	UnwantedKeyword = map[string][]string{
-		"JunkSocial": {"Network", "Pseudo-Junk.Social", "Pseudo-Junk/Social", "Psuedo-Junk/Social_Network", "Pseudo-Junk.Social_Network"},
-		"Teamwork":   {"Discussion"},
-		"JunkOther":  {"OtherJunk"},
+		"JunkSocial":                {"Network", "Pseudo-Junk.Social", "Pseudo-Junk/Social", "Psuedo-Junk/Social_Network", "Pseudo-Junk.Social_Network"},
+		"Teamwork":                  {"Discussion"},
+		"JunkOther":                 {"OtherJunk"},
+		"Pseudo-Junk.ToDo":          {"Do", "Pseudo-Junk.To", "Pseudo-Junk.To_Do"},
+		"Pseudo-Junk.Politics.Rush": {"Limbaugh", "Pseudo-Junk.Politics.Rush_Limbaugh"},
+		"Jobs.GSG":                  {"Street", "Jobs.Grant_Street", "Jobs.Grant"},
+		"Old.NewHope":               {"Hope", "Old.New", "Old.New_Hope"},
+		"Old.JiftyBook":             {"Book", "Old.Jifty", "Old.Jifty_Book"},
+		"Old.GBCWeb":                {"Web", "Old.GBC", "Old.GBC_Web"},
+		"Tech.Perl.Mongers":         {"Mongers", "Tech.Perl.Perl", "Test.Perl.Perl_Mongers"},
+		"Money.ForSale":             {"Sale", "Money.For", "Money.For_Sale"},
+		"AccountInfo":               {"Account", "Info", "Account_Info"},
 	}
 )
 
