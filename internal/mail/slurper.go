@@ -14,7 +14,7 @@ type Slurper interface {
 	Stat() (os.FileInfo, error)
 }
 
-type MailDirSlurper struct {
+type DirSlurper struct {
 	key    string
 	flags  string
 	rd     string
@@ -22,15 +22,15 @@ type MailDirSlurper struct {
 	fi     *os.FileInfo
 }
 
-func NewMailDirSlurper(key, flags, rd string, folder *DirFolder) *MailDirSlurper {
-	return &MailDirSlurper{key, flags, rd, folder, nil}
+func NewMailDirSlurper(key, flags, rd string, folder *DirFolder) *DirSlurper {
+	return &DirSlurper{key, flags, rd, folder, nil}
 }
 
-func NewMailDirSlurperWithStat(key, flags, rd string, folder *DirFolder, fi *os.FileInfo) *MailDirSlurper {
-	return &MailDirSlurper{key, flags, rd, folder, fi}
+func NewMailDirSlurperWithStat(key, flags, rd string, folder *DirFolder, fi *os.FileInfo) *DirSlurper {
+	return &DirSlurper{key, flags, rd, folder, fi}
 }
 
-func (r *MailDirSlurper) Stat() (os.FileInfo, error) {
+func (r *DirSlurper) Stat() (os.FileInfo, error) {
 	if r.fi != nil {
 		return *r.fi, nil
 	}
@@ -42,26 +42,26 @@ func (r *MailDirSlurper) Stat() (os.FileInfo, error) {
 	return fi, err
 }
 
-func (r *MailDirSlurper) Slurp() ([]byte, error) {
+func (r *DirSlurper) Slurp() ([]byte, error) {
 	return ioutil.ReadFile(r.Filename())
 }
 
-func (r *MailDirSlurper) FlagSuffix() string {
+func (r *DirSlurper) FlagSuffix() string {
 	if r.flags == "" {
 		return ""
 	}
 	return ":" + r.flags
 }
 
-func (r *MailDirSlurper) Filename() string {
+func (r *DirSlurper) Filename() string {
 	return path.Join(r.folder.Path(), r.rd, r.key+r.FlagSuffix())
 }
 
-func (r *MailDirSlurper) Folder() string {
+func (r *DirSlurper) Folder() string {
 	return r.folder.Basename()
 }
 
-func (r *MailDirSlurper) MoveTo(target *DirFolder) error {
+func (r *DirSlurper) MoveTo(target *DirFolder) error {
 	targetFile := path.Join(target.Path(), r.rd, r.key+r.FlagSuffix())
 	err := os.Rename(r.Filename(), targetFile)
 	if err != nil {
@@ -74,13 +74,13 @@ func (r *MailDirSlurper) MoveTo(target *DirFolder) error {
 }
 
 type MailDirWriter struct {
-	r *MailDirSlurper
+	r *DirSlurper
 
 	tmp string
 	f   io.WriteCloser
 }
 
-func NewMailDirWriter(r *MailDirSlurper) (*MailDirWriter, error) {
+func NewMailDirWriter(r *DirSlurper) (*MailDirWriter, error) {
 	tmp := path.Join(r.folder.TempDirPath(), r.key+r.FlagSuffix())
 	f, err := os.Create(tmp)
 	if err != nil {
@@ -104,11 +104,11 @@ func (w *MailDirWriter) Close() error {
 	return os.Rename(w.tmp, w.r.Filename())
 }
 
-func (r *MailDirSlurper) Replace() (*MailDirWriter, error) {
+func (r *DirSlurper) Replace() (*MailDirWriter, error) {
 	return NewMailDirWriter(r)
 }
 
-func (r *MailDirSlurper) Remove() error {
+func (r *DirSlurper) Remove() error {
 	return os.Remove(r.Filename())
 }
 

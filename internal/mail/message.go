@@ -707,7 +707,7 @@ func (m *Message) MoveTo(root string, name string) error {
 	}
 
 	destFolder := NewMailDirFolder(root, name)
-	err := m.r.(*MailDirSlurper).MoveTo(destFolder)
+	err := m.r.(*DirSlurper).MoveTo(destFolder)
 	if err != nil {
 		return err
 	}
@@ -721,7 +721,7 @@ func (m *Message) Save() error {
 		return err
 	}
 
-	w, err := m.r.(*MailDirSlurper).Replace()
+	w, err := m.r.(*DirSlurper).Replace()
 	if err != nil {
 		return err
 	}
