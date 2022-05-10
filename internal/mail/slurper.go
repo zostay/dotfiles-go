@@ -73,29 +73,29 @@ func (r *DirSlurper) MoveTo(target *DirFolder) error {
 	return nil
 }
 
-type MailDirWriter struct {
+type DirWriter struct {
 	r *DirSlurper
 
 	tmp string
 	f   io.WriteCloser
 }
 
-func NewMailDirWriter(r *DirSlurper) (*MailDirWriter, error) {
+func NewMailDirWriter(r *DirSlurper) (*DirWriter, error) {
 	tmp := path.Join(r.folder.TempDirPath(), r.key+r.FlagSuffix())
 	f, err := os.Create(tmp)
 	if err != nil {
 		return nil, err
 	}
 
-	w := MailDirWriter{r, tmp, f}
+	w := DirWriter{r, tmp, f}
 	return &w, nil
 }
 
-func (w *MailDirWriter) Write(bs []byte) (int, error) {
+func (w *DirWriter) Write(bs []byte) (int, error) {
 	return w.f.Write(bs)
 }
 
-func (w *MailDirWriter) Close() error {
+func (w *DirWriter) Close() error {
 	err := w.f.Close()
 	if err != nil {
 		return err
@@ -104,7 +104,7 @@ func (w *MailDirWriter) Close() error {
 	return os.Rename(w.tmp, w.r.Filename())
 }
 
-func (r *DirSlurper) Replace() (*MailDirWriter, error) {
+func (r *DirSlurper) Replace() (*DirWriter, error) {
 	return NewMailDirWriter(r)
 }
 
