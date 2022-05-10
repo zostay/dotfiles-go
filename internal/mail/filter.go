@@ -294,7 +294,7 @@ func (fi *Filter) ApplyRules(msg *Message, rules []*CompiledRule) ([]string, err
 		// make sure that panics include the path ot the message that triggered
 		// the panic, otherwise finding the cause is 2^20x harder.
 		if r := recover(); r != nil {
-			err := fmt.Errorf("While processing %q: %w", msg.Filename(), r)
+			err := fmt.Errorf("While processing %q: %v", msg.Filename(), r)
 			panic(err)
 		}
 	}()
