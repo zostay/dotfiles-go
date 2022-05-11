@@ -106,6 +106,11 @@ func outputMetadata(m *nasapod.Metadata) {
 }
 
 func downloadImage(m *nasapod.Metadata) {
+	if m.MediaType == "video" && which != "thumb" {
+		printField("Download", "Skipped video.")
+		return
+	}
+
 	var (
 		fetchCmd  func(m *nasapod.Metadata) (string, io.Reader, error)
 		givenName string
@@ -122,9 +127,8 @@ func downloadImage(m *nasapod.Metadata) {
 			givenName = path.Base(m.Url)
 			dlType = "SD"
 		} else {
-			fetchCmd = c.FetchThumbnailImage
-			givenName = path.Base(m.ThumbnailUrl)
-			dlType = "thumbnail"
+			printField("Download", "Skipped: unable to find URL.")
+			return
 		}
 	case "sd":
 		fetchCmd = c.FetchImage
@@ -143,10 +147,11 @@ func downloadImage(m *nasapod.Metadata) {
 		os.Exit(1)
 	}
 
+	title := fmt.Sprintf("Download %s", dlType)
 	_, rd, err := fetchCmd(m)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed while downloading image: %v", err)
-		os.Exit(1)
+		printField(title, fmt.Sprintf("Error: %v", err))
+		return
 	}
 
 	fileName := givenName
@@ -173,7 +178,6 @@ func downloadImage(m *nasapod.Metadata) {
 		os.Exit(1)
 	}
 
-	title := fmt.Sprintf("Downloaded %s", dlType)
 	printField(title, fileName)
 }
 
