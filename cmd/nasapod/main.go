@@ -60,7 +60,7 @@ func init() {
 		Run:   RunRange,
 	}
 
-	rangeCmd.LocalFlags().IntVar(&count, "count", 0, "Set to a non-zero value to limit the number of images to fetch")
+	rangeCmd.Flags().IntVar(&count, "count", 0, "Set to a non-zero value to limit the number of images to fetch")
 
 	randomCmd := &cobra.Command{
 		Use:   "random",
@@ -69,7 +69,7 @@ func init() {
 		Run:   RunRandom,
 	}
 
-	randomCmd.LocalFlags().IntVar(&count, "count", 0, "Set to a non-zero value to limit the number of images to fetch")
+	randomCmd.Flags().IntVar(&count, "count", 0, "Set to a non-zero value to limit the number of images to fetch")
 
 	cmd.AddCommand(todayCmd)
 	cmd.AddCommand(dateCmd)
@@ -278,14 +278,14 @@ func RunRange(cmd *cobra.Command, args []string) {
 }
 
 func RunRandom(cmd *cobra.Command, args []string) {
-	opts := []nasapod.Option{
-		nasapod.WithThumbs(),
-	}
-	if count != 0 {
-		opts = append(opts, nasapod.WithCount(count))
+	if count == 0 {
+		count = 1
 	}
 
-	r, err := nasapod.NewRequest(opts...)
+	r, err := nasapod.NewRequest(
+		nasapod.WithThumbs(),
+		nasapod.WithCount(count),
+	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to fulfill your request: %v\n", err)
 		os.Exit(1)
