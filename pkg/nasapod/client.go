@@ -28,7 +28,7 @@ type metadataWire struct {
 	Date           string `json:"date,omitempty"`
 	Explanation    string `json:"explanation,omitempty"`
 	HdUrl          string `json:"hdurl,omitempty"`
-	MediaType      string `json:"media_type,omitempty""`
+	MediaType      string `json:"media_type,omitempty"`
 	ServiceVersion string `json:"service_version,omitempty"`
 	Title          string `json:"title,omitempty"`
 	Url            string `json:"url,omitempty"`
@@ -53,7 +53,7 @@ type Metadata struct {
 
 	// MediaType is the media type of the picture. This can be "image" or
 	// "video".
-	MediaType string `json:"media_type,omitempty""`
+	MediaType string `json:"media_type,omitempty"`
 
 	// ServiceVersion is the version of the NASA APOD service (always "v1" as of
 	// this writing).
@@ -131,7 +131,10 @@ func (c *Client) Execute(req *Request) ([]Metadata, error) {
 	// Since we might read the reader twice, let's stuff it into a buffer first
 	// so we can rewind and try again.
 	buf := new(bytes.Buffer)
-	io.Copy(buf, res.Body)
+	_, err = io.Copy(buf, res.Body)
+	if err != nil {
+		return nil, err
+	}
 
 	// This is kinda poopy, but the NASAPOD API might return either an array of
 	// data or single item. It's not always clear which will be returned. So, we

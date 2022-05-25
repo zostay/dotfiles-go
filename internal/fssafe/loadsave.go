@@ -43,10 +43,13 @@ func (w *safeWriter) Write(b []byte) (int, error) {
 }
 
 func (w *safeWriter) Close() error {
-	w.w.Close()
+	err := w.w.Close()
+	if err != nil {
+		return err
+	}
 
 	_ = os.Rename(w.path, w.path+".old")
-	err := os.Rename(w.path+".new", w.path)
+	err = os.Rename(w.path+".new", w.path)
 	if err != nil {
 		return err
 	}

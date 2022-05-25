@@ -31,7 +31,7 @@ var (
 	DefaultMailDir = path.Join(dotfiles.HomeDir, "Mail")
 
 	// SkipFolder lists folders that are never filtered.
-	SkipFolder = map[string]struct{}{
+	SkipFolder = map[string]skip{
 		"gmail.Spam":      skip{},
 		"gmail.Draft":     skip{},
 		"gmail.Trash":     skip{},
