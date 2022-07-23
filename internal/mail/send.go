@@ -18,14 +18,19 @@ import (
 )
 
 const (
+	// FromName is the name to use when sending mail. This should be
+	// configuration.
 	FromName = "Andrew Sterling Hanenkamp"
 
+	// ForwardedMessagePrefix is line to put at the top of a forwarded message.
 	ForwardedMessagePrefix = "---------- Forwarded message ---------"
 )
 
 var (
+	// FromEmail is the email address to use as the from email address.
 	FromEmail = secrets.MustGet(secrets.Secure, "GIT_EMAIL_HOME")
 
+	// FromEmailAddress is the addr.Address created from FromEmail.
 	FromEmailAddress addr.AddressList
 )
 
@@ -38,6 +43,8 @@ func init() {
 	}
 }
 
+// ForwardMessage builds and formats the current message as a message forwarded
+// to the given address.
 func (m *Message) ForwardMessage(to addr.AddressList) ([]byte, error) {
 	mm, err := m.EmailMessage()
 	if err != nil {
@@ -152,6 +159,8 @@ func (m *Message) ForwardMessage(to addr.AddressList) ([]byte, error) {
 	return fm.Bytes(), nil
 }
 
+// ForwardTo performs message forwarding. It formats the message itself to prep
+// it for forwarding and contacts the SMTP to create the envelope and send it.
 func (m *Message) ForwardTo(tos addr.AddressList) error {
 	auth := sasl.NewPlainClient("", SASLUser, SASLPass)
 

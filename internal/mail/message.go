@@ -18,42 +18,59 @@ import (
 )
 
 var (
+	// SASLUser contains the username to use to login
 	SASLUser = secrets.MustGet(secrets.Secure, "LABEL_MAIL_USERNAME")
+
+	// SASLPass contsint eh password to use to login
 	SASLPass = secrets.MustGet(secrets.Secure, "LABEL_MAIL_PASSWORD")
 )
 
+// Message represents a MIME message which may be partially or fully read in.
 type Message struct {
+	// r is the mechanism used for reading in the message
 	r Slurper
+
+	// m is the MIME message representation once parsed
 	m *mime.Message
 }
 
+// NewMessage creates a *Message from a Slurper.
 func NewMessage(r Slurper) *Message {
 	return &Message{r: r}
 }
 
+// NewMailDirMessage returns a single message to be read in using a *DirSlurper from
+// the given key, flags, read status, and folder.
 func NewMailDirMessage(key, flags, rd string, folder *DirFolder) *Message {
 	r := NewMailDirSlurper(key, flags, rd, folder)
 	return NewMessage(r)
 }
 
+// NewMailDirMessageWithStat returns a single message to be read in using a
+// *DirSlurper, but with the given stat info.
 func NewMailDirMessageWithStat(key, flags, rd string, folder *DirFolder, fi *os.FileInfo) *Message {
 	r := NewMailDirSlurperWithStat(key, flags, rd, folder, fi)
 	return NewMessage(r)
 }
 
+// NewFileMessage returns a single message to be read in using a *MessageSlurper
+// with the given filename.
 func NewFileMessage(filename string) *Message {
 	r := NewMessageSlurper(filename)
 	return NewMessage(r)
 }
 
+// Filename returns the name of the file containing the message.
 func (m *Message) Filename() string {
 	return m.r.Filename()
 }
 
+// Stat returns the file info for the file containing the message or an error.
 func (m *Message) Stat() (os.FileInfo, error) {
 	return m.r.Stat()
 }
 
+// EmailMessage returns the *mime.Message of the read in message or an error.
 func (m *Message) EmailMessage() (*mime.Message, error) {
 	if m.m != nil {
 		return m.m, nil
@@ -68,10 +85,13 @@ func (m *Message) EmailMessage() (*mime.Message, error) {
 	return m.m, err
 }
 
+// Raw returns the byte represetnation of the original read in message or an
+// error.
 func (m *Message) Raw() ([]byte, error) {
 	return m.r.Slurp()
 }
 
+// Date returns the contents of hte Date hread of the message or an error.
 func (m *Message) Date() (time.Time, error) {
 	mm, err := m.EmailMessage()
 	if err != nil {
@@ -81,6 +101,8 @@ func (m *Message) Date() (time.Time, error) {
 	return mm.HeaderGetDate()
 }
 
+// Keywords returns the contents of the Keywords header of the message as a
+// slice of strings or an error.
 func (m *Message) Keywords() ([]string, error) {
 	mm, err := m.EmailMessage()
 	if err != nil {
@@ -97,6 +119,7 @@ func (m *Message) Keywords() ([]string, error) {
 	return ks, nil
 }
 
+// KeywordsSet returns the contents of the Keywords header as a set or an error.
 func (m *Message) KeywordsSet() (km map[string]struct{}, err error) {
 	ks, err := m.Keywords()
 	if err != nil {
@@ -111,6 +134,7 @@ func (m *Message) KeywordsSet() (km map[string]struct{}, err error) {
 	return
 }
 
+// HasNonconformingKeywords returns true if the Keywords header is mailformed.
 func (m *Message) HasNonconformingKeywords() (bool, error) {
 	mm, err := m.EmailMessage()
 	if err != nil {
@@ -125,6 +149,10 @@ func (m *Message) HasNonconformingKeywords() (bool, error) {
 	return where >= 0, nil
 }
 
+// HasKeyword returns true if the Keywords header contains all of the given
+// keyword names. It returns an error if it has a problem reading or parsing the
+// Keywords header. If there's no error reading Keywords and the list of names
+// is empty, this will always return true.
 func (m *Message) HasKeyword(names ...string) (bool, error) {
 	km, err := m.KeywordsSet()
 	if err != nil {
@@ -140,6 +168,10 @@ func (m *Message) HasKeyword(names ...string) (bool, error) {
 	return true, nil
 }
 
+// MissingKeyword returns true if the Keywrods header contains none of the given
+// keyword names. It returns an error if it has a problem reading or parsing the
+// Keywords header. If there's no error reading Keywords and the list of names
+// is empty, this will always return true.
 func (m *Message) MissingKeyword(names ...string) (bool, error) {
 	km, err := m.KeywordsSet()
 	if err != nil {
@@ -155,6 +187,9 @@ func (m *Message) MissingKeyword(names ...string) (bool, error) {
 	return true, nil
 }
 
+// CleanupKeywords removes duplicate keywords from the Keywords header and
+// updates the Keywords header. Returns an error if it has a problem reading or
+// writing the header.
 func (m *Message) CleanupKeywords() error {
 	km, err := m.KeywordsSet()
 	if err != nil {
@@ -164,6 +199,9 @@ func (m *Message) CleanupKeywords() error {
 	return m.updateKeywords(km)
 }
 
+// AddKeyword adds all the given names to the Keywords header. Returns an error
+// if it has a problem reading the email message or writing ot hte Keywords
+// header.
 func (m *Message) AddKeyword(names ...string) error {
 	if len(names) == 0 {
 		return nil
@@ -185,6 +223,9 @@ func (m *Message) AddKeyword(names ...string) error {
 	return m.updateKeywords(km)
 }
 
+// updateKeywords is used to update the in-memory representation of the Keywords
+// header. Returns ane error if it has a problem reading the email message or
+// writing to the Keywords header.
 func (m *Message) updateKeywords(km map[string]struct{}) error {
 	mm, err := m.EmailMessage()
 	if err != nil {
@@ -206,6 +247,9 @@ func (m *Message) updateKeywords(km map[string]struct{}) error {
 	return nil
 }
 
+// RemoveKeyword removes all the a names given from the Keywords header, if
+// those keywords are present. Returns an error if it has a problem reading or
+// parsing the Keywords header or writing to it.
 func (m *Message) RemoveKeyword(names ...string) error {
 	if len(names) == 0 {
 		return nil
@@ -227,6 +271,10 @@ func (m *Message) RemoveKeyword(names ...string) error {
 	return m.updateKeywords(km)
 }
 
+// AllAddressLists tries every header matching the given key and parses it as an
+// address list. Those lists are joined together and returned as a single list.
+// Returns an error if it has trouble reading the message or parsing the address
+// lists.
 func (m *Message) AllAddressLists(key string) (addr.AddressList, error) {
 	mm, err := m.EmailMessage()
 	if err != nil {
@@ -236,6 +284,8 @@ func (m *Message) AllAddressLists(key string) (addr.AddressList, error) {
 	return mm.HeaderGetAllAddressLists(key)
 }
 
+// AddressList tries the first header matching the given key and parses it as an
+// address list. It returns the parsed list or returns ane error.
 func (m *Message) AddressList(key string) (addr.AddressList, error) {
 	mm, err := m.EmailMessage()
 	if err != nil {
@@ -245,6 +295,7 @@ func (m *Message) AddressList(key string) (addr.AddressList, error) {
 	return mm.HeaderGetAddressList(key)
 }
 
+// Subject returns the contents of the Subject header.
 func (m *Message) Subject() (string, error) {
 	mm, err := m.EmailMessage()
 	if err != nil {
@@ -254,25 +305,34 @@ func (m *Message) Subject() (string, error) {
 	return mm.HeaderGet("Subject"), nil
 }
 
+// Folder returns the name of the folder that contains this email's file.
 func (m *Message) Folder() (string, error) {
 	return m.r.Folder(), nil
 }
 
+// skipTest represents a function used to skip an action when it won't apply.
 type skipTest func(*Message, *CompiledRule) (skipResult, error)
+
+// ruleTest represents a function used to determine whether a rule is
+// applicable (if it has not been skipped).
 type ruleTest func(*Message, *CompiledRule, *int) (testResult, error)
 
+// skipResult describes whether a skip should occur and why
 type skipResult struct {
 	skip   bool
 	reason string
 }
 
+// testResult describes whether a rule matches and why
 type testResult struct {
 	pass   bool
 	reason string
 }
 
 var (
+	// skipTests defines all the ways in which a rule may be skipped
 	skipTests = []skipTest{
+		// skip because we're labelling and this rule has no label
 		func(m *Message, c *CompiledRule) (skipResult, error) {
 			if !c.IsLabeling() {
 				return skipResult{false, cp.Scolor("base", "not labeling")}, nil
@@ -296,6 +356,7 @@ var (
 			}, err
 		},
 
+		// skip because we're clearing and this rule is not a clearing rule
 		func(m *Message, c *CompiledRule) (skipResult, error) {
 			if !c.IsClearing() {
 				return skipResult{false, cp.Scolor("base", "not clearing")}, nil
@@ -319,6 +380,7 @@ var (
 			}, err
 		},
 
+		// skip because the message is already in the destination folder
 		func(m *Message, c *CompiledRule) (skipResult, error) {
 			if !c.IsMoving() {
 				return skipResult{false, cp.Scolor("base", "not moving")}, nil
@@ -342,6 +404,7 @@ var (
 			}, err
 		},
 
+		// skip because we do not modify starred messages
 		func(m *Message, c *CompiledRule) (skipResult, error) {
 			ok, err := m.HasKeyword("\\Starred")
 			if ok {
@@ -362,7 +425,9 @@ var (
 		},
 	}
 
+	// ruleTests are the rules that identify which messages match a certain rule
 	ruleTests = []ruleTest{
+		// match if the message Date is more recent than the ok date
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if !c.HasOkayDate() {
 				return testResult{true, cp.Scolor("base", "no okay date")}, nil
@@ -388,6 +453,7 @@ var (
 			}, err
 		},
 
+		// match if the message has a matching From address
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.From == "" {
 				return testResult{true, cp.Scolor("base", "no from test")}, nil
@@ -399,6 +465,7 @@ var (
 			return testAddress("From", "from", c.From, from, err)
 		},
 
+		// match if the message has a matching domain in the From header
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.FromDomain == "" {
 				return testResult{true, cp.Scolor("base", "no from domain test")}, nil
@@ -410,6 +477,7 @@ var (
 			return testDomain("From", "from", c.FromDomain, from, err)
 		},
 
+		// match if the message has a matching To address
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.To == "" {
 				return testResult{true, cp.Scolor("base", "no to test")}, nil
@@ -421,6 +489,7 @@ var (
 			return testAddress("To", "to", c.To, to, err)
 		},
 
+		// match if the message has a matching domain in the To header
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.ToDomain == "" {
 				return testResult{true, cp.Scolor("base", "no to domain test")}, nil
@@ -432,6 +501,7 @@ var (
 			return testDomain("To", "to", c.ToDomain, to, err)
 		},
 
+		// match if the message has a matching Sender address
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.Sender == "" {
 				return testResult{true, cp.Scolor("base", "no sender test")}, nil
@@ -443,6 +513,7 @@ var (
 			return testAddress("Sender", "sender", c.Sender, sender, err)
 		},
 
+		// match if the message has a matching Delivered-To address
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.DeliveredTo == "" {
 				return testResult{true, cp.Scolor("base", "no delivered_to test")}, nil
@@ -454,6 +525,7 @@ var (
 			return testAddress("Delivered-To", "delivered_to", c.DeliveredTo, deliveredTo, err)
 		},
 
+		// match if the message has a matching exact Subject header match
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.Subject == "" {
 				return testResult{true, cp.Scolor("base", "no exact subject test")}, nil
@@ -465,7 +537,7 @@ var (
 			if c.Subject != subject {
 				return testResult{false,
 					cp.Scolor(
-						"base", "mesage header ",
+						"base", "message header ",
 						"header", "\"Subject\"",
 						"base", " does not exactly match subject test: ",
 						"value", fmt.Sprintf("%q", c.Subject),
@@ -483,6 +555,8 @@ var (
 			}, err
 		},
 
+		// match if the message has an exact header match, but without case
+		// sensitivity
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.SubjectFold == "" {
 				return testResult{true, cp.Scolor("base", "no folded case subject test")}, nil
@@ -512,6 +586,7 @@ var (
 			}, err
 		},
 
+		// match if the Subject header contains the given substring
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.SubjectContains == "" {
 				return testResult{true, cp.Scolor("base", "no subject contains test")}, nil
@@ -541,6 +616,8 @@ var (
 			}, err
 		},
 
+		// match if the Subject header contains the given substring, but using a
+		// case-insensitive match
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.SubjectContainsFold == "" {
 				return testResult{true, cp.Scolor("base", "no subject contains subject folded case test")}, nil
@@ -570,6 +647,7 @@ var (
 			}, err
 		},
 
+		// match if the message anywhere contains the given substring
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.Contains == "" {
 				return testResult{true, cp.Scolor("base", "no contains anywhere test")}, nil
@@ -595,6 +673,8 @@ var (
 			}, err
 		},
 
+		// match if the message anywhere contains the given substring, with a
+		// case insensitive match
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.ContainsFold == "" {
 				return testResult{true, cp.Scolor("base", "no contains anywhere folded case test")}, nil
@@ -622,6 +702,11 @@ var (
 	}
 )
 
+// testAddress is a function that tests to see if the given addr.AddressList
+// contains the expected address. It sets up common diagnostic messages and
+// always returns the given err, but formatted with a better diagnostic message.
+// The dbgh contains the name of the header for use with diagnostic messages.
+// The dbgt contains the name of the test for diagnostic messages.
 func testAddress(dbgh, dbgt, expect string, got addr.AddressList, err error) (testResult, error) {
 	if err != nil {
 		err = fmt.Errorf("error reading %q header: %w", dbgh, err)
@@ -660,6 +745,10 @@ func testAddress(dbgh, dbgt, expect string, got addr.AddressList, err error) (te
 	}, err
 }
 
+// testDomain is a helper that tests to see if the given domain is found in the
+// addr.AddressList. It adds diagnostics around the process. The dbgh names the
+// header being tested. The dbgt is the test being performed. And the err is
+// returned.
 func testDomain(dbgh, dbgt, expect string, got addr.AddressList, err error) (testResult, error) {
 	if len(got) == 0 {
 		return testResult{false,
@@ -694,6 +783,8 @@ func testDomain(dbgh, dbgt, expect string, got addr.AddressList, err error) (tes
 	}, err
 }
 
+// MoveTo moves the message to the maildir folder represented by the given root
+// directory and folder name. Returns an error if the move fails.
 func (m *Message) MoveTo(root string, name string) error {
 	if f, ok := labelBoxes[name]; ok {
 		name = f
@@ -715,6 +806,7 @@ func (m *Message) MoveTo(root string, name string) error {
 	return nil
 }
 
+// Save saves any modifications made to the message to disk.
 func (m *Message) Save() error {
 	mm, err := m.EmailMessage()
 	if err != nil {
@@ -727,9 +819,9 @@ func (m *Message) Save() error {
 	}
 	defer w.Close()
 
-	//fmt.Println("START WRITING")
+	// fmt.Println("START WRITING")
 	_, err = w.Write(mm.Bytes())
-	//fmt.Println("END WRITING")
+	// fmt.Println("END WRITING")
 	if err != nil {
 		return fmt.Errorf("unable to save %q: %w", m.Filename(), err)
 	}
@@ -737,6 +829,8 @@ func (m *Message) Save() error {
 	return nil
 }
 
+// BestAlternateFolder returns a folder name describing a better folder for the
+// given name. This really ought to be in configuration.
 func (m *Message) BestAlternateFolder() (string, error) {
 	ks, err := m.Keywords()
 	if err != nil {

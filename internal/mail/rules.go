@@ -14,43 +14,104 @@ import (
 )
 
 const (
+	// LocalLabelMailConf is the name of the local rules which are kept local on
+	// disk and do not save in version control.
 	LocalLabelMailConf = ".label-mail.local.yml"
-	LabelMailConf      = ".label-mail.yml"
+
+	// LabelMailConf is the name of the generic rules which are kept in version
+	// control.
+	LabelMailConf = ".label-mail.yml"
 )
 
+// Match is the input configuration used for each rule.
 type Match struct {
-	Folder              string `yaml:"folder"`
-	From                string `yaml:"from"`
-	FromDomain          string `yaml:"from_domain"`
-	To                  string `yaml:"to"`
-	ToDomain            string `yaml:"to_domain"`
-	Sender              string `yaml:"sender"`
-	DeliveredTo         string `yaml:"delivered_to"`
-	Subject             string `yaml:"subject"`
-	SubjectFold         string `yaml:"isubject"`
-	SubjectContains     string `yaml:"subject_contains"`
+	// Folder is used to limit matching to an individual folder. If not given,
+	// this rule will be applied to all folders.
+	Folder string `yaml:"folder"`
+
+	// From is used to match email addresses in the From header.
+	From string `yaml:"from"`
+
+	// FromDomain is used to match email address domains in the From header.
+	FromDomain string `yaml:"from_domain"`
+
+	// To is used to match email addresses in the To header.
+	To string `yaml:"to"`
+
+	// ToDomain is used to match email address domains in the To header.
+	ToDomain string `yaml:"to_domain"`
+
+	// Sender is used to match email addresses in the Sender header.
+	Sender string `yaml:"sender"`
+
+	// DeliveredTo is used to match email addresses in the Delivered-To header.
+	DeliveredTo string `yaml:"delivered_to"`
+
+	// Subject is used to match entire Subject header exactly.
+	Subject string `yaml:"subject"`
+
+	// SubjectFold is used to match entire Subject header exactly but with
+	// case-insensitivity.
+	SubjectFold string `yaml:"isubject"`
+
+	// SubjectContains is used to match a substring of the Subject header.
+	SubjectContains string `yaml:"subject_contains"`
+
+	// SubjectContainsFold is used to match a substring of the Subject header,
+	// but with case-insensitivity.
 	SubjectContainsFold string `yaml:"subject_icontains"`
-	Contains            string `yaml:"contains"`
-	ContainsFold        string `yaml:"icontains"`
-	Days                int    `yaml:"days"`
+
+	// Contains is used ot match a substring anywhere in the email message.
+	Contains string `yaml:"contains"`
+
+	// ContainsFold is used to match a substring anywhere in the email message,
+	// but with case-insensitivity.
+	ContainsFold string `yaml:"icontains"`
+
+	// Days limits matches to email messages older than the given number
+	// of days.
+	Days int `yaml:"days"`
 }
 
+// CompiledRule is the match after it has been processed by teh rule compiler.
 type CompiledRule struct {
+	// Match is the original rule taken from the configuration file.
 	Match
+
+	// OkayDate is the date calculated from Days. A message does not match this
+	// rule unless it has a Date header before the OkayDate.
 	OkayDate time.Time
 
-	Clear   []string
-	Label   []string
-	Move    string
+	// Clear lists the labels to clear from the message.
+	Clear []string
+
+	// Label lists the lables to add to the message.
+	Label []string
+
+	// Move lists the folder to move the message into.
+	Move string
+
+	// Forward gives the addresses to send the message to.
 	Forward addr.AddressList
 }
 
-func (c *CompiledRule) IsClearing() bool   { return len(c.Clear) != 0 }
-func (c *CompiledRule) IsLabeling() bool   { return len(c.Label) != 0 }
-func (c *CompiledRule) IsMoving() bool     { return c.Move != "" }
-func (c *CompiledRule) IsForwarding() bool { return len(c.Forward) != 0 }
-func (c *CompiledRule) HasOkayDate() bool  { return c.OkayDate != time.Time{} }
+// IsClearing returns true if the message lists labels to clear.
+func (c *CompiledRule) IsClearing() bool { return len(c.Clear) != 0 }
 
+// IsLabeling returns true if the message lists labels to add.
+func (c *CompiledRule) IsLabeling() bool { return len(c.Label) != 0 }
+
+// IsMoving returns true if the message has a Move folder.
+func (c *CompiledRule) IsMoving() bool { return c.Move != "" }
+
+// IsForwarding returns true if the message has forwarding addresses.
+func (c *CompiledRule) IsForwarding() bool { return len(c.Forward) != 0 }
+
+// HasOkayDate returns true if the OkayDate is set.
+func (c *CompiledRule) HasOkayDate() bool { return c.OkayDate != time.Time{} }
+
+// NeedsOkayDate returns true if Days is set on the Match or if the rule adds
+// the Trash label or if the rule moves the message to the Trash.
 func (c *CompiledRule) NeedsOkayDate() bool {
 	if c.Days != 0 {
 		return true
@@ -71,18 +132,39 @@ func (c *CompiledRule) NeedsOkayDate() bool {
 	return false
 }
 
+// RawRule is the rule in the configuration file combining both the Match and
+// the actions to take.
 type RawRule struct {
-	Match   `yaml:",inline"`
-	Clear   interface{} `yaml:"clear"`
-	Label   interface{} `yaml:"label"`
-	Move    string      `yaml:"move"`
+	// Match represents the matches to apply.
+	Match `yaml:",inline"`
+
+	// Clear is either a string or list containing labels to remove when a
+	// message matches.
+	Clear interface{} `yaml:"clear"`
+
+	// Label is either a string or list containing labels to edd when a message
+	// matches.
+	Label interface{} `yaml:"label"`
+
+	// Move is the name of the folder to move matching messages into.
+	Move string `yaml:"move"`
+
+	// Forward is the string or list containing email addresses to send the
+	// message to if it matches.
 	Forward interface{} `yaml:"forward"`
 }
 
+// RawRules is a list of rules
 type RawRules []RawRule
+
+// EnvRawRules is a list of rules sectioned by environment name.
 type EnvRawRules map[string]RawRules
+
+// CompiledRules is a list of compiled rules sectioned by environment name.
 type CompiledRules []*CompiledRule
 
+// LoadRules will load the rules from the various configuration files, combine,
+// compile, and return them. Returns an error if something goes wrong.
 func LoadRules() (CompiledRules, error) {
 	var crs CompiledRules
 
@@ -174,6 +256,8 @@ func LoadRules() (CompiledRules, error) {
 	return crs, nil
 }
 
+// CompileField handles fields that can either be provided as a list of items or
+// a single string and turns them into a list of strings.
 func CompileField(name string, field interface{}) []string {
 	var r1 []string
 	if field == nil {
@@ -202,6 +286,9 @@ func CompileField(name string, field interface{}) []string {
 	return r1
 }
 
+// CompileAddress handles fields that can either be provided as a list of items
+// or a single string and turns them into an addr.AddressList. Returns an error
+// if there's a problem parsing the email address(es).
 func CompileAddress(name string, a interface{}) (addr.AddressList, error) {
 	r1 := CompileField(name, a)
 	r2 := make(addr.AddressList, len(r1))
@@ -215,6 +302,8 @@ func CompileAddress(name string, a interface{}) (addr.AddressList, error) {
 	return r2, nil
 }
 
+// CompileLabel provides special handling for label fields. It converts labels
+// to their canonical form.
 func CompileLabel(name string, label interface{}) []string {
 	r1 := CompileField(name, label)
 
@@ -243,6 +332,13 @@ func CompileLabel(name string, label interface{}) []string {
 	return r2
 }
 
+// CompiledFolderRules are CompiledRules grouped by folder name.
+type CompiledFolderRules map[string]CompiledRules
+
+// FolderRules takes the compiled rules and groups them by folder. Any rule
+// without a folder match will be added to every folder list. Those with a
+// folder match will only be added to the folder with the same name. This
+// performs some final cleanup on compiled rules as well.
 func (crs CompiledRules) FolderRules() CompiledFolderRules {
 	fcrs := make(CompiledFolderRules)
 
@@ -276,8 +372,8 @@ func (crs CompiledRules) FolderRules() CompiledFolderRules {
 	return fcrs
 }
 
-type CompiledFolderRules map[string]CompiledRules
-
+// Add is a helper message that will cleanly append the rule to the
+// CompiledRules in the named folder.
 func (fcrs CompiledFolderRules) Add(folder string, cr *CompiledRule) {
 	if fcr, ok := fcrs[folder]; ok {
 		fcrs[folder] = append(fcr, cr)

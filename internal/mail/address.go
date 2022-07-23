@@ -6,6 +6,8 @@ import (
 	"github.com/zostay/go-addr/pkg/addr"
 )
 
+// AddressListStrings a list of strings created by calling CleanString() on each
+// address in the given addr.AddressList.
 func AddressListStrings(as addr.AddressList) []string {
 	ss := make([]string, len(as))
 	for i, a := range as {
@@ -14,6 +16,7 @@ func AddressListStrings(as addr.AddressList) []string {
 	return ss
 }
 
+// AddressListHTML returns an HTML representation of the addr.AddressList.
 func AddressListHTML(addr addr.AddressList) string {
 	var addrStr string
 	for _, a := range addr {
