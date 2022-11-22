@@ -11,11 +11,13 @@ import (
 )
 
 var (
-	cmd          *cobra.Command
-	mailDir      string
-	verbose      int
-	dryRun       bool
-	allowSending bool
+	cmd            *cobra.Command
+	mailDir        string
+	rulesFile      string
+	localRulesFile string
+	verbose        int
+	dryRun         bool
+	allowSending   bool
 )
 
 func init() {
@@ -27,6 +29,8 @@ func init() {
 	}
 
 	cmd.PersistentFlags().StringVar(&mailDir, "maildir", mail.DefaultMailDir, "the root directory for mail")
+	cmd.PersistentFlags().StringVar(&rulesFile, "rules", mail.DefaultPrimaryRulesConfigPath(), "the primary rules file")
+	cmd.PersistentFlags().StringVar(&localRulesFile, "local-rules", mail.DefaultLocalRulesConfigPath(), "the local rules file")
 	cmd.PersistentFlags().BoolVarP(&dryRun, "dry-run", "d", false, "perform a dry run")
 	cmd.PersistentFlags().CountVarP(&verbose, "verbose", "v", "enable debugging verbose mode")
 	cmd.PersistentFlags().BoolVarP(&allowSending, "allow-forwarding", "e", false, "allow email forwarding rules to run")
@@ -37,7 +41,7 @@ func RunLabelMessage(cmd *cobra.Command, args []string) {
 		panic(errors.New("maildir did not work"))
 	}
 
-	filter, err := mail.NewFilter(mailDir)
+	filter, err := mail.NewFilter(mailDir, rulesFile, localRulesFile)
 	if err != nil {
 		panic(err)
 	}

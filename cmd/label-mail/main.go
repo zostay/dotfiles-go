@@ -16,16 +16,18 @@ import (
 )
 
 var (
-	cmd          *cobra.Command
-	allMail      bool
-	mailDir      string
-	dryRun       bool
-	verbose      int
-	folders      []string
-	allowSending bool
-	cpuprofile   string
-	vacuumFirst  bool
-	vacuumOnly   bool
+	cmd            *cobra.Command
+	allMail        bool
+	mailDir        string
+	rulesFile      string
+	localRulesFile string
+	dryRun         bool
+	verbose        int
+	folders        []string
+	allowSending   bool
+	cpuprofile     string
+	vacuumFirst    bool
+	vacuumOnly     bool
 )
 
 func init() {
@@ -39,6 +41,8 @@ func init() {
 
 	cmd.PersistentFlags().BoolVarP(&allMail, "all-mail", "a", false, "run against mail from all time")
 	cmd.PersistentFlags().StringVar(&mailDir, "maildir", mail.DefaultMailDir, "the root directory for mail")
+	cmd.PersistentFlags().StringVar(&rulesFile, "rules", mail.DefaultPrimaryRulesConfigPath(), "the primary rules file")
+	cmd.PersistentFlags().StringVar(&localRulesFile, "local-rules", mail.DefaultLocalRulesConfigPath(), "the local rules file")
 	cmd.PersistentFlags().BoolVarP(&dryRun, "dry-run", "d", false, "perform a dry run")
 	cmd.PersistentFlags().CountVarP(&verbose, "verbose", "v", "enable debugging verbose mode")
 	cmd.PersistentFlags().StringSliceVarP(&folders, "folder", "f", []string{}, "select folders to filter")
@@ -53,7 +57,7 @@ func RunLabelMail(cmd *cobra.Command, args []string) {
 		panic(errors.New("maildir did not work"))
 	}
 
-	filter, err := mail.NewFilter(mailDir)
+	filter, err := mail.NewFilter(mailDir, rulesFile, localRulesFile)
 	if err != nil {
 		panic(err)
 	}
@@ -101,7 +105,5 @@ func RunLabelMail(cmd *cobra.Command, args []string) {
 
 func main() {
 	err := cmd.Execute()
-	if err != nil {
-		panic(err)
-	}
+	cobra.CheckErr(err)
 }

@@ -61,8 +61,12 @@ type Filter struct {
 }
 
 // NewFilter loads the rules and prepares the system for message filtering.
-func NewFilter(root string) (*Filter, error) {
-	f, err := LoadRules()
+func NewFilter(
+	root,
+	primaryRules,
+	localRules string,
+) (*Filter, error) {
+	f, err := LoadRules(primaryRules, localRules)
 	if err != nil {
 		return nil, err
 	}

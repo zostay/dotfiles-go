@@ -1,7 +1,7 @@
 package mail
 
 import (
-	"io/ioutil"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -163,9 +163,53 @@ type EnvRawRules map[string]RawRules
 // CompiledRules is a list of compiled rules sectioned by environment name.
 type CompiledRules []*CompiledRule
 
+// LoadEnvRawRules loads the standard rules file split up into into environment
+// sections.
+func LoadEnvRawRules(rulePath string) (EnvRawRules, error) {
+	var pr EnvRawRules
+
+	lbs, err := os.ReadFile(rulePath)
+	if err != nil {
+		return pr, err
+	}
+
+	err = yaml.Unmarshal(lbs, &pr)
+	return pr, err
+}
+
+// LoadRawRules loads the rules as a single section. (No sections split out by
+// environment.)
+func LoadRawRules(rulePath string) (RawRules, error) {
+	var lr RawRules
+	llbs, err := os.ReadFile(rulePath)
+	if err != nil {
+		return lr, err
+	}
+
+	err = yaml.Unmarshal(llbs, &lr)
+	return lr, err
+}
+
+// DefaultPrimaryRulesConfigPath returns the default location for the primary
+// rules file.
+func DefaultPrimaryRulesConfigPath() string {
+	return path.Join(dotfiles.HomeDir, LabelMailConf)
+}
+
+// DefaultLocalRulesConfigPath returns the default location for the local rules
+// file.
+func DefaultLocalRulesConfigPath() string {
+	return path.Join(dotfiles.HomeDir, LocalLabelMailConf)
+}
+
 // LoadRules will load the rules from the various configuration files, combine,
 // compile, and return them. Returns an error if something goes wrong.
-func LoadRules() (CompiledRules, error) {
+//
+// The primary file is the main configuration file with environment sections
+// broken out (usually at located ~/.label-mail.yaml). The local file is the
+// localized configuration file with no environment sections (usually located at
+// ~/.label-mail.local.yaml).
+func LoadRules(primary, local string) (CompiledRules, error) {
 	var crs CompiledRules
 
 	env, err := dotfiles.Environment()
@@ -173,24 +217,12 @@ func LoadRules() (CompiledRules, error) {
 		return crs, err
 	}
 
-	lbs, err := ioutil.ReadFile(path.Join(dotfiles.HomeDir, LabelMailConf))
+	pr, err := LoadEnvRawRules(primary)
 	if err != nil {
 		return crs, err
 	}
 
-	var pr EnvRawRules
-	err = yaml.Unmarshal(lbs, &pr)
-	if err != nil {
-		return crs, err
-	}
-
-	llbs, err := ioutil.ReadFile(path.Join(dotfiles.HomeDir, LocalLabelMailConf))
-	if err != nil {
-		return crs, err
-	}
-
-	var lr RawRules
-	err = yaml.Unmarshal(llbs, &lr)
+	lr, err := LoadRawRules(local)
 	if err != nil {
 		return crs, err
 	}
