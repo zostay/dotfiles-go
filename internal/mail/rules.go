@@ -371,7 +371,7 @@ type CompiledFolderRules map[string]CompiledRules
 // without a folder match will be added to every folder list. Those with a
 // folder match will only be added to the folder with the same name. This
 // performs some final cleanup on compiled rules as well.
-func (crs CompiledRules) FolderRules() CompiledFolderRules {
+func (crs CompiledRules) FolderRules(now time.Time) CompiledFolderRules {
 	fcrs := make(CompiledFolderRules)
 
 	for _, cr := range crs {
@@ -381,7 +381,7 @@ func (crs CompiledRules) FolderRules() CompiledFolderRules {
 				days = cr.Days
 			}
 
-			cr.OkayDate = time.Now().Add(time.Duration(-days) * time.Hour * 24)
+			cr.OkayDate = now.Add(time.Duration(-days) * time.Hour * 24)
 		}
 
 		folder := ""

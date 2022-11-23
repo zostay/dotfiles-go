@@ -45,7 +45,7 @@ func init() {
 
 // ForwardMessage builds and formats the current message as a message forwarded
 // to the given address.
-func (m *Message) ForwardMessage(to addr.AddressList) ([]byte, error) {
+func (m *Message) ForwardMessage(to addr.AddressList, now time.Time) ([]byte, error) {
 	mm, err := m.EmailMessage()
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func (m *Message) ForwardMessage(to addr.AddressList) ([]byte, error) {
 	boundary := genBoundary()
 	fm := mime.NewMessage(boundary)
 
-	fm.HeaderSetDate(time.Now())
+	fm.HeaderSetDate(now)
 	fm.HeaderSetAddressList("To", to)
 	fm.HeaderSetAddressList("From", FromEmailAddress)
 	fm.HeaderSetAddressList("X-Forwarded-To", to)
@@ -161,7 +161,7 @@ func (m *Message) ForwardMessage(to addr.AddressList) ([]byte, error) {
 
 // ForwardTo performs message forwarding. It formats the message itself to prep
 // it for forwarding and contacts the SMTP to create the envelope and send it.
-func (m *Message) ForwardTo(tos addr.AddressList) error {
+func (m *Message) ForwardTo(tos addr.AddressList, now time.Time) error {
 	auth := sasl.NewPlainClient("", SASLUser, SASLPass)
 
 	mm, err := m.EmailMessage()
@@ -189,7 +189,7 @@ func (m *Message) ForwardTo(tos addr.AddressList) error {
 		}
 	}
 
-	fm, err := m.ForwardMessage(tos)
+	fm, err := m.ForwardMessage(tos, now)
 	if err != nil {
 		return err
 	}

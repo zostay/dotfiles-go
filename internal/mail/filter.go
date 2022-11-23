@@ -32,10 +32,10 @@ var (
 
 	// SkipFolder lists folders that are never filtered.
 	SkipFolder = map[string]skip{
-		"gmail.Spam":      skip{},
-		"gmail.Draft":     skip{},
-		"gmail.Trash":     skip{},
-		"gmail.Sent_Mail": skip{},
+		"gmail.Spam":      {},
+		"gmail.Draft":     {},
+		"gmail.Trash":     {},
+		"gmail.Sent_Mail": {},
 	}
 )
 
@@ -56,6 +56,8 @@ type Filter struct {
 
 	debug  int  // set the debug level, higher numbers mean even more verbose logging
 	dryRun bool // when set, no changes will be made
+
+	now time.Time // the notion of "now" for the script is program start
 
 	allowSendingEmail bool // unless set, no email forwarding will be performed
 }
@@ -89,6 +91,12 @@ func (fi *Filter) SetDryRun(dryRun bool) {
 	fi.dryRun = dryRun
 }
 
+// UseNow changes the notion of "now" for the filter tooling. Helpful for
+// testing, at least.
+func (fi *Filter) UseNow(now time.Time) {
+	fi.now = now
+}
+
 // LimitFilterToRecent sets the limitRecent time. When set and filtering
 // folders, only messages with a modification time newer than limitRecent will
 // be filtered.
@@ -98,7 +106,7 @@ func (fi *Filter) LimitFilterToRecent(limit time.Duration) {
 
 // LimitSince returns the LimitSince setting set by LimitFilterToRecent.
 func (fi *Filter) LimitSince() time.Time {
-	return time.Now().Add(-fi.limitRecent)
+	return fi.now.Add(-fi.limitRecent)
 }
 
 // folder constructs a NewMailDirFolder for the named folder in the mail root.
@@ -184,7 +192,7 @@ func (fi *Filter) AllFolders() ([]string, error) {
 // second return value is a boolean indicating whether this folder has any rules
 // at all.
 func (fi *Filter) RulesForFolder(f string) (CompiledRules, bool) {
-	folders := fi.rules.FolderRules()
+	folders := fi.rules.FolderRules(fi.now)
 
 	var (
 		gr  CompiledRules
@@ -453,7 +461,7 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 
 	if c.IsForwarding() {
 		if !fi.dryRun && fi.allowSendingEmail {
-			err := m.ForwardTo(c.Forward)
+			err := m.ForwardTo(c.Forward, fi.now)
 			if err != nil {
 				return actions, err
 			}
