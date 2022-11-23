@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/spf13/cobra"
 	"github.com/zostay/go-addr/pkg/addr"
 
@@ -34,7 +36,7 @@ func RunForward(cmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	err = m.ForwardTo(as)
+	err = m.ForwardTo(as, time.Now())
 	if err != nil {
 		panic(err)
 	}
