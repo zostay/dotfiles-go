@@ -10,19 +10,19 @@ import (
 )
 
 func mkFilter(t *testing.T) *Filter {
-	f, err := NewFilter("test/maildir", "test/rules.yaml", "test/local.yaml")
+	f, err := NewFilter("test/maildir", "test/rules.yml", "test/local.yml")
 	require.NoError(t, err)
 	return f
 }
 
 func TestNewFilter(t *testing.T) {
-	_, err := NewFilter("test/maildir", "test/nonexistent-rules.yaml", "test/local.yaml")
+	_, err := NewFilter("test/maildir", "test/nonexistent-rules.yml", "test/local.yml")
 	assert.Error(t, err)
 
-	_, err = NewFilter("test/maildir", "test/rules.yaml", "test/nonexistent-local.yaml")
+	_, err = NewFilter("test/maildir", "test/rules.yml", "test/nonexistent-local.yml")
 	assert.Error(t, err)
 
-	f, err := NewFilter("test/maildir", "test/rules.yaml", "test/local.yaml")
+	f, err := NewFilter("test/maildir", "test/rules.yml", "test/local.yml")
 	assert.NoError(t, err)
 	assert.NotNil(t, f)
 }
@@ -94,4 +94,34 @@ func TestFilter_AllFolders(t *testing.T) {
 
 	sort.Strings(folders)
 	assert.Equal(t, []string{"INBOX", "Other"}, folders)
+}
+
+func TestFilter_RulesForFolder(t *testing.T) {
+	f := mkFilter(t)
+	f.UseNow(time.Date(2022, 11, 22, 23, 11, 59, 0, time.Local))
+
+	rules := f.RulesForFolder("INBOX")
+	require.Len(t, rules, 1)
+
+	assert.Equal(t, &CompiledRule{
+		Match: Match{
+			Folder: "INBOX",
+			Days:   7,
+			From:   "sterling@example.com",
+		},
+		Label:    []string{"Other"},
+		OkayDate: time.Date(2022, 11, 15, 23, 11, 59, 0, time.Local),
+	}, rules[0])
+
+	rules = f.RulesForFolder("Other")
+	require.Len(t, rules, 1)
+
+	assert.Equal(t, &CompiledRule{
+		Match: Match{
+			Folder: "Other",
+			Days:   10,
+		},
+		Clear:    []string{`\Inbox`},
+		OkayDate: time.Date(2022, 11, 12, 23, 11, 59, 0, time.Local),
+	}, rules[0])
 }

@@ -1,0 +1,10 @@
+---
+home:
+  - folder: Other
+    days: 10
+    clear: INBOX
+
+work:
+  - folder: Other
+    days: 3
+    clear: INBOX

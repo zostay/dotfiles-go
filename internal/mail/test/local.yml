@@ -1,0 +1,5 @@
+---
+- folder: INBOX
+  from: sterling@example.com
+  days: 7
+  label: Other

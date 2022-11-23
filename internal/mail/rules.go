@@ -293,26 +293,26 @@ func LoadRules(primary, local string) (CompiledRules, error) {
 func CompileField(name string, field interface{}) []string {
 	var r1 []string
 	if field == nil {
-		r1 = []string{}
-	} else {
-		switch v := field.(type) {
-		case string:
-			r1 = []string{v}
-		case []interface{}:
-			r1 = make([]string, len(v))
-			for i, vi := range v {
-				switch vv := vi.(type) {
-				case string:
-					r1[i] = vv
-				default:
-					r1[i] = ""
-					pretty.Printf("RULE HAS WEIRD %s: %# v\n", name, v)
-				}
+		return nil
+	}
+
+	switch v := field.(type) {
+	case string:
+		r1 = []string{v}
+	case []interface{}:
+		r1 = make([]string, len(v))
+		for i, vi := range v {
+			switch vv := vi.(type) {
+			case string:
+				r1[i] = vv
+			default:
+				r1[i] = ""
+				pretty.Printf("RULE HAS WEIRD %s: %# v\n", name, v)
 			}
-		default:
-			r1 = []string{}
-			pretty.Printf("RULE HAS INCORRECT %s: %# v\n", name, v)
 		}
+	default:
+		r1 = []string{}
+		pretty.Printf("RULE HAS INCORRECT %s: %# v\n", name, v)
 	}
 
 	return r1
@@ -323,6 +323,10 @@ func CompileField(name string, field interface{}) []string {
 // if there's a problem parsing the email address(es).
 func CompileAddress(name string, a interface{}) (addr.AddressList, error) {
 	r1 := CompileField(name, a)
+	if r1 == nil {
+		return nil, nil
+	}
+
 	r2 := make(addr.AddressList, len(r1))
 	for i, a := range r1 {
 		var err error
@@ -339,8 +343,8 @@ func CompileAddress(name string, a interface{}) (addr.AddressList, error) {
 func CompileLabel(name string, label interface{}) []string {
 	r1 := CompileField(name, label)
 
-	if len(r1) == 0 {
-		return r1
+	if r1 == nil {
+		return nil
 	}
 
 	r2 := make([]string, 0, len(r1))

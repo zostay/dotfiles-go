@@ -191,7 +191,7 @@ func (fi *Filter) AllFolders() ([]string, error) {
 // RulesForFolder returns all the rules that apply to the given folder. The
 // second return value is a boolean indicating whether this folder has any rules
 // at all.
-func (fi *Filter) RulesForFolder(f string) (CompiledRules, bool) {
+func (fi *Filter) RulesForFolder(f string) CompiledRules {
 	folders := fi.rules.FolderRules(fi.now)
 
 	var (
@@ -213,17 +213,17 @@ func (fi *Filter) RulesForFolder(f string) (CompiledRules, bool) {
 
 		fr = append(fr, gr...)
 
-		return fr, true
+		return fr
 	}
 
-	return gr, gok
+	return gr
 }
 
 // LabelMessage applies filters to a specific message.
 func (fi *Filter) LabelMessage(folder, fn string) (ActionsSummary, error) {
 	actions := make(ActionsSummary)
 
-	if fr, ok := fi.RulesForFolder(folder); ok {
+	if fr := fi.RulesForFolder(folder); len(fr) > 0 {
 		msg, err := fi.Message(folder, fn)
 		if err != nil {
 			return actions, err
@@ -259,7 +259,7 @@ func (fi *Filter) LabelMessages(onlyFolders []string) (ActionsSummary, error) {
 	}
 
 	for _, f := range whichFolders {
-		if fr, ok := fi.RulesForFolder(f); ok {
+		if fr := fi.RulesForFolder(f); len(fr) > 0 {
 			err := fi.LabelFolderMessages(actions, f, fr)
 			if err != nil {
 				return actions, err
