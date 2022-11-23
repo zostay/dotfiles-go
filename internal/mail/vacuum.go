@@ -102,7 +102,7 @@ func (fi *Filter) Vacuum() error {
 					return err
 				}
 
-				err = msg.MoveTo(fi.MailRoot, other)
+				err = msg.MoveTo(fi.mailRoot, other)
 				if err != nil {
 					return err
 				}
@@ -126,7 +126,7 @@ func (fi *Filter) Vacuum() error {
 				)
 			}
 
-			deadFolder := path.Join(fi.MailRoot, folder)
+			deadFolder := path.Join(fi.mailRoot, folder)
 			for _, sd := range []string{"new", "cur", "tmp"} {
 				err = os.Remove(path.Join(deadFolder, sd))
 				if err != nil {

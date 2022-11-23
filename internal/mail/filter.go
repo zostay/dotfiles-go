@@ -49,15 +49,15 @@ func init() {
 // Filter represents the tools that parse and understand mail rules and filter
 // folders and messages.
 type Filter struct {
-	MailRoot string        // maildir to filter
-	Rules    CompiledRules // the compiled filter rules
+	mailRoot string        // maildir to filter
+	rules    CompiledRules // the compiled filter rules
 
-	LimitRecent time.Duration // if set, only message files newer than this will be filtered
+	limitRecent time.Duration // if set, only message files newer than this will be filtered
 
-	Debug  int  // set the debug level, higher numbers mean even more verbose logging
-	DryRun bool // when set, no changes will be made
+	debug  int  // set the debug level, higher numbers mean even more verbose logging
+	dryRun bool // when set, no changes will be made
 
-	AllowSendingEmail bool // unless set, no email forwarding will be performed
+	allowSendingEmail bool // unless set, no email forwarding will be performed
 }
 
 // NewFilter loads the rules and prepares the system for message filtering.
@@ -72,26 +72,38 @@ func NewFilter(
 	}
 
 	return &Filter{
-		MailRoot: root,
-		Rules:    f,
+		mailRoot: root,
+		rules:    f,
 	}, nil
 }
 
-// LimitFilterToRecent sets the LimitRecent time. When set and filtering
-// folders, only messages with a modification time newer than LimitRecent will
+// SetDebugLevel turns on debug logging to the given level when a true value is
+// passed.
+func (fi *Filter) SetDebugLevel(debug int) {
+	fi.debug = debug
+}
+
+// SetDryRun turns off actual changes to the messages when a true value is
+// passed.
+func (fi *Filter) SetDryRun(dryRun bool) {
+	fi.dryRun = dryRun
+}
+
+// LimitFilterToRecent sets the limitRecent time. When set and filtering
+// folders, only messages with a modification time newer than limitRecent will
 // be filtered.
 func (fi *Filter) LimitFilterToRecent(limit time.Duration) {
-	fi.LimitRecent = limit
+	fi.limitRecent = limit
 }
 
 // LimitSince returns the LimitSince setting set by LimitFilterToRecent.
 func (fi *Filter) LimitSince() time.Time {
-	return time.Now().Add(-fi.LimitRecent)
+	return time.Now().Add(-fi.limitRecent)
 }
 
 // folder constructs a NewMailDirFolder for the named folder in the mail root.
 func (fi *Filter) folder(folder string) *DirFolder {
-	return NewMailDirFolder(fi.MailRoot, folder)
+	return NewMailDirFolder(fi.mailRoot, folder)
 }
 
 // Message returns a single message in a single folder.
@@ -118,12 +130,12 @@ func (fi *Filter) Messages(folder string) ([]*Message, error) {
 	ms = make([]*Message, 0, len(allms))
 
 	var since time.Time
-	if fi.LimitRecent > 0 {
+	if fi.limitRecent > 0 {
 		since = fi.LimitSince()
 	}
 
 	for _, m := range allms {
-		if fi.LimitRecent > 0 {
+		if fi.limitRecent > 0 {
 			info, err := m.Stat()
 			if err != nil {
 				return ms, fmt.Errorf("unable to stat %q: %w", m.Filename(), err)
@@ -144,7 +156,7 @@ func (fi *Filter) Messages(folder string) ([]*Message, error) {
 func (fi *Filter) AllFolders() ([]string, error) {
 	var folderNames []string
 
-	md, err := os.Open(fi.MailRoot)
+	md, err := os.Open(fi.mailRoot)
 	if err != nil {
 		return folderNames, err
 	}
@@ -172,7 +184,7 @@ func (fi *Filter) AllFolders() ([]string, error) {
 // second return value is a boolean indicating whether this folder has any rules
 // at all.
 func (fi *Filter) RulesForFolder(f string) (CompiledRules, bool) {
-	folders := fi.Rules.FolderRules()
+	folders := fi.rules.FolderRules()
 
 	var (
 		gr  CompiledRules
@@ -266,7 +278,7 @@ func (fi *Filter) LabelFolderMessages(
 			continue
 		}
 
-		if fi.Debug > 2 {
+		if fi.debug > 2 {
 			cp.Fcolor(os.Stderr,
 				"reading", "READING ",
 				"file", fmt.Sprintf("%s\n", msg.Filename()),
@@ -371,7 +383,7 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 	}
 
 	// MOAR DEBUGGING
-	if fi.Debug > 2 && fail != "" {
+	if fi.debug > 2 && fail != "" {
 		cp.Fcolor(os.Stderr,
 			"fail", "✗ FAILED",
 			"meh", fmt.Sprintf(": %s.\n", fail),
@@ -379,7 +391,7 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 	}
 
 	// AND EVEN MOAR DEBUGGING
-	if fi.Debug > 2 || (fi.Debug > 1 && (len(passes) > 0 && fail == "")) {
+	if fi.debug > 2 || (fi.debug > 1 && (len(passes) > 0 && fail == "")) {
 		pass := "base"
 		if fail == "" && tests > 0 {
 			pass = "pass"
@@ -402,7 +414,7 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 	actions = make([]string, 0, 1)
 
 	debugLogOp := func(op string, m *Message, ts []string) {
-		if fi.Debug > 0 {
+		if fi.debug > 0 {
 			f := m.r.Filename()
 			cp.Fcolor(os.Stderr,
 				strings.ToLower(op), op,
@@ -414,7 +426,7 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 	}
 
 	if c.IsLabeling() {
-		if !fi.DryRun {
+		if !fi.dryRun {
 			err := m.AddKeyword(c.Label...)
 			if err != nil {
 				return actions, err
@@ -427,7 +439,7 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 	}
 
 	if c.IsClearing() {
-		if !fi.DryRun {
+		if !fi.dryRun {
 			err := m.RemoveKeyword(c.Clear...)
 			if err != nil {
 				return actions, err
@@ -440,7 +452,7 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 	}
 
 	if c.IsForwarding() {
-		if !fi.DryRun && fi.AllowSendingEmail {
+		if !fi.dryRun && fi.allowSendingEmail {
 			err := m.ForwardTo(c.Forward)
 			if err != nil {
 				return actions, err
@@ -449,14 +461,14 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 
 		debugLogOp("FORWARDING", m, AddressListStrings(c.Forward))
 
-		if fi.AllowSendingEmail {
+		if fi.allowSendingEmail {
 			actions = append(actions, "Forwarded "+strings.Join(AddressListStrings(c.Forward), ", "))
 		} else {
 			actions = append(actions, "NOT Forwarded "+strings.Join(AddressListStrings(c.Forward), ", "))
 		}
 	}
 
-	if len(actions) > 0 && !fi.DryRun {
+	if len(actions) > 0 && !fi.dryRun {
 		err := m.Save()
 		if err != nil {
 			return actions, err
@@ -464,8 +476,8 @@ func (fi *Filter) ApplyRule(m *Message, c *CompiledRule) ([]string, error) {
 	}
 
 	if c.IsMoving() {
-		if !fi.DryRun {
-			err := m.MoveTo(fi.MailRoot, c.Move)
+		if !fi.dryRun {
+			err := m.MoveTo(fi.mailRoot, c.Move)
 			if err != nil {
 				return actions, err
 			}
