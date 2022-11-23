@@ -11,7 +11,14 @@ import (
 
 func mkFilter(t *testing.T) *Filter {
 	f, err := NewFilter("test/maildir", "test/rules.yml", "test/local.yml")
+	f.UseNow(time.Date(2022, 11, 22, 23, 11, 59, 0, time.Local))
 	require.NoError(t, err)
+	return f
+}
+
+func mkFilterDR(t *testing.T) *Filter {
+	f := mkFilter(t)
+	f.SetDryRun(true)
 	return f
 }
 
@@ -30,7 +37,6 @@ func TestNewFilter(t *testing.T) {
 func TestFilter_LimitSince(t *testing.T) {
 	f := mkFilter(t)
 
-	f.UseNow(time.Date(2022, 11, 22, 23, 11, 59, 0, time.Local))
 	f.LimitFilterToRecent(48 * time.Hour)
 
 	since := f.LimitSince()
@@ -98,7 +104,6 @@ func TestFilter_AllFolders(t *testing.T) {
 
 func TestFilter_RulesForFolder(t *testing.T) {
 	f := mkFilter(t)
-	f.UseNow(time.Date(2022, 11, 22, 23, 11, 59, 0, time.Local))
 
 	rules := f.RulesForFolder("INBOX")
 	require.Len(t, rules, 1)
@@ -124,4 +129,15 @@ func TestFilter_RulesForFolder(t *testing.T) {
 		Clear:    []string{`\Inbox`},
 		OkayDate: time.Date(2022, 11, 12, 23, 11, 59, 0, time.Local),
 	}, rules[0])
+}
+
+func TestFilter_LabelMessage(t *testing.T) {
+	f := mkFilterDR(t)
+
+	actions, err := f.LabelMessage("INBOX", "1:2,S")
+	assert.NoError(t, err)
+
+	assert.Equal(t, ActionsSummary{
+		"Labeled Other": 1,
+	}, actions)
 }

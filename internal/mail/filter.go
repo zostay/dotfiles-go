@@ -76,6 +76,7 @@ func NewFilter(
 	return &Filter{
 		mailRoot: root,
 		rules:    f,
+		now:      time.Now(),
 	}, nil
 }
 
