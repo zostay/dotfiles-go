@@ -74,21 +74,31 @@ func (f *DirFolder) Message(fn string) (*Message, error) {
 	return nil, fmt.Errorf("no message named %q in folder %q", fn, f.Path())
 }
 
-// Messages returns all mail messages stored in the maildir.
-func (f *DirFolder) Messages() ([]*Message, error) {
-	var ms []*Message
-
+// Messages returns a MessageList, which can be used to efficiently iterate
+// through all messages in a folder.
+//  msgs, err := folder.Messages()
+//  if err != nil {
+//    panic(err)
+//  }
+//  var msg Message
+//  for msgs.Next(&msg) {
+//    # process msg ...
+//  }
+//  if err := msgs.Err(); err != nil {
+//    panic(err)
+//  }
+func (f *DirFolder) Messages() (*DirFolderMessageList, error) {
 	fism := make(map[string][]os.FileInfo)
 	fiCount := 0
 	for _, dir := range f.MessageDirPaths() {
 		md, err := os.Open(dir)
 		if err != nil {
-			return ms, fmt.Errorf("unable to open maildir %q for reading: %w", f.basename, err)
+			return nil, fmt.Errorf("unable to open maildir %q for reading: %w", f.basename, err)
 		}
 
 		fis, err := md.Readdir(0)
 		if err != nil {
-			return ms, fmt.Errorf("unable to read maildir %q file list: %w", f.basename, err)
+			return nil, fmt.Errorf("unable to read maildir %q file list: %w", f.basename, err)
 		}
 
 		rd := path.Base(dir)
@@ -96,17 +106,8 @@ func (f *DirFolder) Messages() ([]*Message, error) {
 		fiCount += len(fis)
 	}
 
-	ms = make([]*Message, 0, fiCount)
-	for rd, fis := range fism {
-		for _, fi := range fis {
-			if strings.HasPrefix(fi.Name(), ".") {
-				continue
-			}
-
-			m := f.message(rd, fi.Name(), fi)
-			ms = append(ms, m)
-		}
-	}
-
-	return ms, nil
+	return &DirFolderMessageList{
+		parent:         f,
+		remainingFiles: fism,
+	}, nil
 }

@@ -126,39 +126,75 @@ func (fi *Filter) Message(folder, fn string) (*Message, error) {
 	return m, nil
 }
 
-// Messages returns all the messages that should be filtered in that folder.
-func (fi *Filter) Messages(folder string) ([]*Message, error) {
-	var ms []*Message
+type MessageFilter func(m *Message) (bool, error)
 
+// FilteredMessageList applies a filter to a MessageList to only return those
+// messages that match the given predicate.
+type FilteredMessageList struct {
+	ml   MessageList
+	pred MessageFilter
+	err  error
+}
+
+var _ MessageList = &FilteredMessageList{}
+
+// NewFilteredMessageList returns a FilteredMessageList.
+func NewFilteredMessageList(
+	ml MessageList,
+	pred MessageFilter,
+) *FilteredMessageList {
+	return &FilteredMessageList{ml, pred, nil}
+}
+
+// Next returns true if there is a message remaining to be read and copies it
+// into the given message pointer.
+func (ml *FilteredMessageList) Next(msg *Message) bool {
+	for ml.Next(msg) {
+		ok, err := ml.pred(msg)
+		if err != nil {
+			ml.err = err
+		}
+		if ok {
+			return true
+		}
+	}
+	return false
+}
+
+// Err returns the error that occurred if an error occurs during interation.
+func (ml *FilteredMessageList) Err() error {
+	return ml.err
+}
+
+// Messages returns all the messages that should be filtered in that folder.
+func (fi *Filter) Messages(folder string) (MessageList, error) {
 	f := fi.folder(folder)
 	allms, err := f.Messages()
 	if err != nil {
-		return ms, err
+		return nil, err
 	}
-
-	ms = make([]*Message, 0, len(allms))
 
 	var since time.Time
 	if fi.limitRecent > 0 {
 		since = fi.LimitSince()
 	}
 
-	for _, m := range allms {
-		if fi.limitRecent > 0 {
+	if fi.limitRecent > 0 {
+		return NewFilteredMessageList(allms, func(m *Message) (bool, error) {
 			info, err := m.Stat()
 			if err != nil {
-				return ms, fmt.Errorf("unable to stat %q: %w", m.Filename(), err)
+				return false, fmt.Errorf("unable to stat %q: %w", m.Filename(), err)
 			}
 
 			if info.ModTime().Before(since) {
-				continue
+				return false, nil
 			}
-		}
 
-		ms = append(ms, m)
+			return true, nil
+		}), nil
 	}
 
-	return ms, nil
+	return allms, nil
 }
 
 // AllFolders lists all the maildir folders in the mail root.
@@ -282,7 +318,8 @@ func (fi *Filter) LabelFolderMessages(
 		return err
 	}
 
-	for _, msg := range msgs {
+	var msg Message
+	for msgs.Next(&msg) {
 		if _, skip := SkipFolder[msg.r.Folder()]; skip {
 			continue
 		}
@@ -302,7 +339,7 @@ func (fi *Filter) LabelFolderMessages(
 			continue
 		}
 
-		as, err := fi.ApplyRules(msg, rules)
+		as, err := fi.ApplyRules(&msg, rules)
 		if err != nil {
 			return fmt.Errorf("error (applying rules) in %q: %v", msg.Filename(), err)
 		}

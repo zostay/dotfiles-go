@@ -66,23 +66,33 @@ func TestFilter_Messages(t *testing.T) {
 
 	msgs, err := f.Messages("INBOX")
 	require.NoError(t, err)
-	require.Len(t, msgs, 1)
 
-	subj, err := msgs[0].Subject()
+	var msg Message
+	ok := msgs.Next(&msg)
+	assert.True(t, ok)
+
+	subj, err := msg.Subject()
 	assert.NoError(t, err)
 	assert.Equal(t, "Foo", subj)
 
+	ok = msgs.Next(&msg)
+	assert.False(t, ok)
+	assert.NoError(t, msgs.Err())
+
 	msgs, err = f.Messages("Other")
 	require.NoError(t, err)
-	require.Len(t, msgs, 2)
 
 	var subjs [2]string
 
-	for i, msg := range msgs {
+	i := 0
+	for msgs.Next(&msg) {
 		subj, err := msg.Subject()
 		assert.NoError(t, err)
 		subjs[i] = subj
+		i++
 	}
+
+	assert.NoError(t, msgs.Err())
 
 	sort.Strings(subjs[:])
 
@@ -135,6 +145,17 @@ func TestFilter_LabelMessage(t *testing.T) {
 	f := mkFilterDR(t)
 
 	actions, err := f.LabelMessage("INBOX", "1:2,S")
+	assert.NoError(t, err)
+
+	assert.Equal(t, ActionsSummary{
+		"Labeled Other": 1,
+	}, actions)
+}
+
+func TestFilter_LabelMessages(t *testing.T) {
+	f := mkFilterDR(t)
+
+	actions, err := f.LabelMessages([]string{"INBOX"})
 	assert.NoError(t, err)
 
 	assert.Equal(t, ActionsSummary{

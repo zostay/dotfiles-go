@@ -27,9 +27,12 @@ func TestDirFolder_Messages(t *testing.T) {
 
 	ms, err := mdf.Messages()
 	require.NoError(t, err)
-	assert.Len(t, ms, 1)
 
-	subj, err := ms[0].Subject()
+	var msg Message
+	ok := ms.Next(&msg)
+	assert.True(t, ok)
+
+	subj, err := msg.Subject()
 	require.NoError(t, err)
 	assert.Equal(t, "Foo", subj)
 }

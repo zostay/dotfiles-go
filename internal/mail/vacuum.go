@@ -96,7 +96,8 @@ func (fi *Filter) Vacuum() error {
 				return err
 			}
 
-			for _, msg := range msgs {
+			var msg Message
+			for msgs.Next(&msg) {
 				other, err := msg.BestAlternateFolder()
 				if err != nil {
 					return err
@@ -159,7 +160,8 @@ func (fi *Filter) Vacuum() error {
 				return err
 			}
 
-			for _, msg := range msgs {
+			var msg Message
+			for msgs.Next(&msg) {
 				change := 0
 
 				// Cleanup unwanted chars in keywords
@@ -180,7 +182,7 @@ func (fi *Filter) Vacuum() error {
 				}
 
 				// Something went wrong somewhere
-				unwanted, wanted, err := hasUnwantedKeyword(msg)
+				unwanted, wanted, err := hasUnwantedKeyword(&msg)
 				if err != nil {
 					return err
 				}
