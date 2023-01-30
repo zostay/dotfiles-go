@@ -81,7 +81,7 @@ func (m *Message) ForwardMessage(to addr.AddressList, now time.Time) (io.WriterT
 		return nil, err
 	}
 
-	fwdCcList, err := mm.GetHeader().GetCc()
+	fwdCcList, _ := mm.GetHeader().GetCc()
 	if err != nil {
 		return nil, err
 	}

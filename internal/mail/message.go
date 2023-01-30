@@ -313,7 +313,11 @@ func (m *Message) AllAddressLists(key string) ([]addr.AddressList, error) {
 		return nil, err
 	}
 
-	return mm.GetHeader().GetAllAddressLists(key)
+	als, err := mm.GetHeader().GetAllAddressLists(key)
+	if errors.Is(err, header.ErrNoSuchField) {
+		return nil, nil
+	}
+	return als, err
 }
 
 // AddressList tries the first header matching the given key and parses it as an
@@ -324,7 +328,11 @@ func (m *Message) AddressList(key string) (addr.AddressList, error) {
 		return nil, err
 	}
 
-	return mm.GetHeader().GetAddressList(key)
+	al, err := mm.GetHeader().GetAddressList(key)
+	if errors.Is(err, header.ErrNoSuchField) {
+		return nil, nil
+	}
+	return al, err
 }
 
 // Subject returns the contents of the Subject header.
