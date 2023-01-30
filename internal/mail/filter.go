@@ -120,7 +120,7 @@ func (fi *Filter) Message(folder, fn string) (*Message, error) {
 	f := fi.folder(folder)
 	m, err := f.Message(fn)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to pull message %s/%s: %w", folder, fn, err)
 	}
 
 	return m, nil
@@ -171,7 +171,7 @@ func (fi *Filter) Messages(folder string) (MessageList, error) {
 	f := fi.folder(folder)
 	allms, err := f.Messages()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get messages from folder %s: %w", folder, err)
 	}
 
 	var since time.Time
@@ -201,14 +201,14 @@ func (fi *Filter) Messages(folder string) (MessageList, error) {
 func (fi *Filter) AllFolders() ([]string, error) {
 	md, err := os.Open(fi.mailRoot)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read mail root %s: %w", fi.mailRoot, err)
 	}
 
 	defer md.Close()
 
 	folders, err := md.Readdir(0)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read dir %s: %w", fi.mailRoot, err)
 	}
 
 	folderNames := make([]string, 0, len(folders))
@@ -261,12 +261,12 @@ func (fi *Filter) LabelMessage(folder, fn string) (ActionsSummary, error) {
 	if fr := fi.RulesForFolder(folder); len(fr) > 0 {
 		msg, err := fi.Message(folder, fn)
 		if err != nil {
-			return actions, err
+			return actions, fmt.Errorf("failed to read message %s/%s: %w", folder, fn, err)
 		}
 
 		as, err := fi.ApplyRules(msg, fr)
 		if err != nil {
-			return actions, err
+			return actions, fmt.Errorf("failed to apply words: %w", err)
 		}
 
 		for _, a := range as {
@@ -287,7 +287,7 @@ func (fi *Filter) LabelMessages(onlyFolders []string) (ActionsSummary, error) {
 		var err error
 		whichFolders, err = fi.AllFolders()
 		if err != nil {
-			return actions, err
+			return actions, fmt.Errorf("unable to get a list of folders for labeling: %w", err)
 		}
 	} else {
 		whichFolders = onlyFolders
@@ -297,7 +297,7 @@ func (fi *Filter) LabelMessages(onlyFolders []string) (ActionsSummary, error) {
 		if fr := fi.RulesForFolder(f); len(fr) > 0 {
 			err := fi.LabelFolderMessages(actions, f, fr)
 			if err != nil {
-				return actions, err
+				return actions, fmt.Errorf("failed to label messages in folder %s: %w", f, err)
 			}
 		}
 	}
