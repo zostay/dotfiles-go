@@ -2,8 +2,9 @@ package mail
 
 import (
 	"bytes"
+	"fmt"
 	"html"
-	"math/rand"
+	"io"
 	"sort"
 	"strings"
 	"time"
@@ -12,7 +13,8 @@ import (
 	"github.com/emersion/go-sasl"
 	"github.com/emersion/go-smtp"
 	"github.com/zostay/go-addr/pkg/addr"
-	"github.com/zostay/go-email/pkg/email/mime"
+	"github.com/zostay/go-email/v2/message"
+	"github.com/zostay/go-email/v2/message/walk"
 
 	"github.com/zostay/dotfiles-go/pkg/secrets"
 )
@@ -45,118 +47,139 @@ func init() {
 
 // ForwardMessage builds and formats the current message as a message forwarded
 // to the given address.
-func (m *Message) ForwardMessage(to addr.AddressList, now time.Time) ([]byte, error) {
-	mm, err := m.EmailMessage()
+func (m *Message) ForwardMessage(to addr.AddressList, now time.Time) (io.WriterTo, error) {
+	mm, err := m.MultipartEmailMessage()
 	if err != nil {
 		return nil, err
 	}
 
-	genBoundary := func() string {
-		for {
-			var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-			s := make([]rune, 30)
-			for i := range s {
-				s[i] = letters[rand.Intn(len(letters))]
-			}
+	fm := &message.Buffer{}
+	fm.SetDate(now)
+	_ = fm.SetTo(to)
+	_ = fm.SetFrom(FromEmailAddress)
+	fm.SetAddressList("X-Forwarded-To", to...)
+	fm.SetAddressList("X-Forwarded-For", FromEmailAddress...)
 
-			boundary := string(s)
-			if !strings.Contains(mm.String(), boundary) {
-				return boundary
-			}
+	fwdSubject, err := mm.GetHeader().GetSubject()
+	if err != nil {
+		return nil, err
+	}
+
+	if !strings.HasPrefix(fwdSubject, "Fwd: ") {
+		fwdSubject = "Fwd: " + fwdSubject
+	}
+
+	fm.SetSubject(fwdSubject)
+
+	fwdFromList, err := mm.GetHeader().GetFrom()
+	if err != nil {
+		return nil, err
+	}
+
+	fwdToList, err := mm.GetHeader().GetTo()
+	if err != nil {
+		return nil, err
+	}
+
+	fwdCcList, err := mm.GetHeader().GetCc()
+	if err != nil {
+		return nil, err
+	}
+
+	fwdDate, err := mm.GetHeader().GetDate()
+
+	if err != nil {
+		return nil, err
+	}
+
+	writeForwardMessageTextPrefix := func(w io.Writer) error {
+		_, _ = fmt.Fprintf(w, ForwardedMessagePrefix)
+		_, _ = fmt.Fprintf(w, "\nFrom: "+fwdFromList.String())
+		_, _ = fmt.Fprintf(w, "\nDate: "+fwdDate.Format(time.RFC1123))
+		_, _ = fmt.Fprintf(w, "\nSubject: "+fwdSubject)
+		_, _ = fmt.Fprintf(w, "\nTo: "+fwdToList.String())
+		if len(fwdCcList) > 0 {
+			_, _ = fmt.Fprintf(w, "\nCc: "+fwdCcList.String())
 		}
+		_, _ = fmt.Fprintf(w, "\n\n")
+
+		return nil
 	}
 
-	boundary := genBoundary()
-	fm := mime.NewMessage(boundary)
+	writeForwardMessageHtmlPrefix := func(w io.Writer) error {
+		_, _ = fmt.Fprintf(w, "<div><br></div><div><br><div>")
+		_, _ = fmt.Fprintf(w, ForwardedMessagePrefix)
+		_, _ = fmt.Fprintf(w, "<br>From: "+AddressListHTML(fwdFromList))
+		_, _ = fmt.Fprintf(w, "<br>Date: "+fwdDate.Format(time.RFC1123))
+		_, _ = fmt.Fprintf(w, "<br>Subject: "+html.EscapeString(fwdSubject))
+		_, _ = fmt.Fprintf(w, "<br>To: "+AddressListHTML(fwdToList))
+		if len(fwdCcList) > 0 {
+			_, _ = fmt.Fprintf(w, "<br>Cc: "+AddressListHTML(fwdCcList))
+		}
+		_, _ = fmt.Fprintf(w, "<br></div><br><br>")
 
-	fm.HeaderSetDate(now)
-	fm.HeaderSetAddressList("To", to)
-	fm.HeaderSetAddressList("From", FromEmailAddress)
-	fm.HeaderSetAddressList("X-Forwarded-To", to)
-	fm.HeaderSetAddressList("X-Forwarded-For", FromEmailAddress)
-
-	fwdSubject := mm.HeaderGet("Subject")
-
-	err = fm.HeaderSet("Subject", "Fwd: "+fwdSubject)
-	if err != nil {
-		return nil, err
+		return nil
 	}
 
-	fwdFromList, err := mm.HeaderGetAddressList("From")
-	if err != nil {
-		return nil, err
-	}
+	if !mm.IsMultipart() {
+		mt, err := mm.GetHeader().GetMediaType()
+		if err != nil {
+			return nil, err
+		}
 
-	fwdToList, err := mm.HeaderGetAddressList("To")
-	if err != nil {
-		return nil, err
-	}
+		switch mt {
+		case "text/html":
+			err = writeForwardMessageHtmlPrefix(fm)
+			if err != nil {
+				return nil, err
+			}
+		case "text/plain":
+			err = writeForwardMessageTextPrefix(fm)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			return nil, fmt.Errorf("unable to forward message of type %q", mt)
+		}
 
-	fwdCcList, err := mm.HeaderGetAddressList("Cc")
-	if err != nil {
-		return nil, err
-	}
+		_, err = io.Copy(fm, mm.GetReader())
+		if err != nil {
+			return nil, err
+		}
 
-	fwdDate, err := mm.HeaderGetDate()
-
-	if err != nil {
-		return nil, err
+		return fm, nil
 	}
 
 	// We will flatten a complex multipart message to a single level by doing this.
-	_ = mm.WalkSingleParts(func(d, i int, p *mime.Message) error {
-		boundary := genBoundary()
-		fp := mime.NewMessage(boundary)
+	p, err := walk.AndTransform(
+		func(part message.Part, parents []message.Part, state []any) (stateInit any, err error) {
+			buf := message.NewBlankBuffer(part)
 
-		for _, h := range p.Fields {
-			err = fp.HeaderSet(h.Name(), h.Body())
+			mt, _ := part.GetHeader().GetMediaType()
+			if mt == "text/plain" {
+				err = writeForwardMessageTextPrefix(buf)
+				if err != nil {
+					return nil, err
+				}
+			} else if mt == "text/html" {
+				err = writeForwardMessageHtmlPrefix(buf)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			_, err = io.Copy(buf, part.GetReader())
 			if err != nil {
-				return err
-			}
-		}
-
-		var content strings.Builder
-		if p.HeaderContentDisposition() == "inline" {
-			cd := mm.HeaderContentType()
-			switch cd {
-			case "text/plain":
-				_, _ = content.WriteString(ForwardedMessagePrefix)
-				_, _ = content.WriteString("\nFrom: " + fwdFromList.String())
-				_, _ = content.WriteString("\nDate: " + fwdDate.Format(time.RFC1123))
-				_, _ = content.WriteString("\nSubject: " + fwdSubject)
-				_, _ = content.WriteString("\nTo: " + fwdToList.String())
-				if len(fwdCcList) > 0 {
-					_, _ = content.WriteString("\nCc: " + fwdCcList.String())
-				}
-				_, _ = content.WriteString("\n\n")
-			case "text/html":
-				_, _ = content.WriteString("<div><br></div><div><br><div>")
-				_, _ = content.WriteString(ForwardedMessagePrefix)
-				_, _ = content.WriteString("<br>From: " + AddressListHTML(fwdFromList))
-				_, _ = content.WriteString("<br>Date: " + fwdDate.Format(time.RFC1123))
-				_, _ = content.WriteString("<br>Subject: " + html.EscapeString(fwdSubject))
-				_, _ = content.WriteString("<br>To: " + AddressListHTML(fwdToList))
-				if len(fwdCcList) > 0 {
-					_, _ = content.WriteString("<br>Cc: " + AddressListHTML(fwdCcList))
-				}
-				_, _ = content.WriteString("<br></div><br><br>")
+				return nil, err
 			}
 
-			content.Write(p.Content())
-		}
+			state[len(state)-1].(*message.Buffer).Add(buf)
 
-		if content.Len() > 0 {
-			fp.SetContentString(content.String())
-		} else {
-			fp.SetContent(p.Content())
-		}
+			return buf, nil
+		}, mm,
+	)
 
-		fm.InsertPart(-1, fp)
-
-		return nil
-	})
-
-	return fm.Bytes(), nil
+	return p.(*message.Buffer), nil
 }
 
 // ForwardTo performs message forwarding. It formats the message itself to prep
@@ -169,7 +192,7 @@ func (m *Message) ForwardTo(tos addr.AddressList, now time.Time) error {
 		return err
 	}
 
-	zfw := mm.HeaderGet("X-Zostay-Forwarded")
+	zfw, _ := mm.GetHeader().Get("X-Zostay-Forwarded")
 	zfwm := make(map[string]struct{})
 	zfws := make([]string, 0, len(tos))
 	if zfw != "" {
@@ -194,12 +217,18 @@ func (m *Message) ForwardTo(tos addr.AddressList, now time.Time) error {
 		return err
 	}
 
+	r := &bytes.Buffer{}
+	_, err = fm.WriteTo(r)
+	if err != nil {
+		return err
+	}
+
 	err = smtp.SendMail(
 		"smtp.gmail.com:587",
 		auth,
 		FromEmail,
 		finalTos,
-		bytes.NewReader(fm),
+		r,
 	)
 	if err != nil {
 		return err
@@ -207,10 +236,7 @@ func (m *Message) ForwardTo(tos addr.AddressList, now time.Time) error {
 
 	sort.Strings(zfws)
 
-	err = mm.HeaderSet("X-Zostay-Forwarded", strings.Join(zfws, ", "))
-	if err != nil {
-		return err
-	}
+	mm.GetHeader().Set("X-Zostay-Forwarded", strings.Join(zfws, ", "))
 
 	return nil
 }

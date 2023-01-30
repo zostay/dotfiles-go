@@ -9,8 +9,8 @@ import (
 // Slurper describes the interface to implement for anything that can read an
 // email message.
 type Slurper interface {
-	// Slurp returns the bytes of the read message or returns an error.
-	Slurp() ([]byte, error)
+	// Reader returns an io.Reader that will return the data.
+	Reader() (io.Reader, error)
 
 	// Filename gives the file name of the message on disk.
 	Filename() string
@@ -59,8 +59,8 @@ func (r *DirSlurper) Stat() (os.FileInfo, error) {
 }
 
 // Slurp slurps up the file data and returns it.
-func (r *DirSlurper) Slurp() ([]byte, error) {
-	return os.ReadFile(r.Filename())
+func (r *DirSlurper) Reader() (io.Reader, error) {
+	return os.Open(r.Filename())
 }
 
 // FlagSuffix returns the flags associated with this maildir message.
@@ -152,8 +152,8 @@ func NewMessageSlurper(filename string) *MessageSlurper {
 }
 
 // Slurp reads in the MIME message.
-func (r *MessageSlurper) Slurp() ([]byte, error) {
-	return os.ReadFile(r.filename)
+func (r *MessageSlurper) Reader() (io.Reader, error) {
+	return os.Open(r.filename)
 }
 
 // Filename returns the name of the message.

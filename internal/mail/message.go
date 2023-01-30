@@ -3,6 +3,7 @@ package mail
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"sort"
@@ -11,7 +12,7 @@ import (
 	"unicode"
 
 	"github.com/zostay/go-addr/pkg/addr"
-	"github.com/zostay/go-email/pkg/email/mime"
+	"github.com/zostay/go-email/v2/message"
 
 	"github.com/zostay/dotfiles-go/internal/xtrings"
 	"github.com/zostay/dotfiles-go/pkg/secrets"
@@ -31,7 +32,7 @@ type Message struct {
 	r Slurper
 
 	// m is the MIME message representation once parsed
-	m *mime.Message
+	m message.Generic
 }
 
 // NewMessage creates a *Message from a Slurper.
@@ -70,25 +71,48 @@ func (m *Message) Stat() (os.FileInfo, error) {
 	return m.r.Stat()
 }
 
-// EmailMessage returns the *mime.Message of the read in message or an error.
-func (m *Message) EmailMessage() (*mime.Message, error) {
+// EmailMessage returns the message.Opaque with headers parsed or returns an
+// error.
+func (m *Message) EmailMessage() (message.Generic, error) {
 	if m.m != nil {
 		return m.m, nil
 	}
 
-	bs, err := m.r.Slurp()
+	r, err := m.r.Reader()
 	if err != nil {
 		return nil, err
 	}
 
-	m.m, err = mime.Parse(bs)
+	m.m, err = message.Parse(r, message.WithoutMultipart())
 	return m.m, err
 }
 
-// Raw returns the byte represetnation of the original read in message or an
+// MultipartEmailMessage returns the message.Multipart or message.Opaque parsed
+// or returns an error.
+func (m *Message) MultipartEmailMessage() (message.Generic, error) {
+	if m.m != nil {
+		return m.m, nil
+	}
+
+	r, err := m.r.Reader()
+	if err != nil {
+		return nil, err
+	}
+
+	m.m, err = message.Parse(r,
+		message.WithUnlimitedRecursion(),
+		message.WithMaxPartLength(message.DefaultMaxPartLength*1_000))
+	return m.m, err
+}
+
+// Raw returns the byte representation of the original read in message or an
 // error.
 func (m *Message) Raw() ([]byte, error) {
-	return m.r.Slurp()
+	r, err := m.r.Reader()
+	if err != nil {
+		return nil, err
+	}
+	return io.ReadAll(r)
 }
 
 // Date returns the contents of hte Date hread of the message or an error.
@@ -98,7 +122,7 @@ func (m *Message) Date() (time.Time, error) {
 		return time.Time{}, err
 	}
 
-	return mm.HeaderGetDate()
+	return mm.GetHeader().GetDate()
 }
 
 // Keywords returns the contents of the Keywords header of the message as a
@@ -109,14 +133,7 @@ func (m *Message) Keywords() ([]string, error) {
 		return nil, err
 	}
 
-	sk := mm.HeaderGet("Keywords")
-	ks := strings.FieldsFunc(sk, func(c rune) bool {
-		return unicode.IsSpace(c) || c == ','
-	})
-
-	sort.Strings(ks)
-
-	return ks, nil
+	return mm.GetHeader().GetKeywords()
 }
 
 // KeywordsSet returns the contents of the Keywords header as a set or an error.
@@ -141,12 +158,22 @@ func (m *Message) HasNonconformingKeywords() (bool, error) {
 		return false, err
 	}
 
-	sk := mm.HeaderGet("Keywords")
-	where := strings.IndexFunc(sk, func(c rune) bool {
-		return unicode.IsLetter(c) || unicode.IsNumber(c) || c == '_' || c == '-' || c == '.' || c == '/'
-	})
+	sk, err := mm.GetHeader().GetKeywords()
+	if err != nil {
+		return false, err
+	}
 
-	return where >= 0, nil
+	for _, k := range sk {
+		where := strings.IndexFunc(k, func(c rune) bool {
+			return unicode.IsLetter(c) || unicode.IsNumber(c) || c == '_' || c == '-' || c == '.' || c == '/'
+		})
+
+		if where >= 0 {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // HasKeyword returns true if the Keywords header contains all of the given
@@ -239,7 +266,7 @@ func (m *Message) updateKeywords(km map[string]struct{}) error {
 
 	sort.Strings(ks)
 
-	err = mm.HeaderSet("Keywords", strings.Join(ks, " "))
+	mm.GetHeader().SetKeywords(ks...)
 	if err != nil {
 		return err
 	}
@@ -275,13 +302,13 @@ func (m *Message) RemoveKeyword(names ...string) error {
 // address list. Those lists are joined together and returned as a single list.
 // Returns an error if it has trouble reading the message or parsing the address
 // lists.
-func (m *Message) AllAddressLists(key string) (addr.AddressList, error) {
+func (m *Message) AllAddressLists(key string) ([]addr.AddressList, error) {
 	mm, err := m.EmailMessage()
 	if err != nil {
 		return nil, err
 	}
 
-	return mm.HeaderGetAllAddressLists(key)
+	return mm.GetHeader().GetAllAddressLists(key)
 }
 
 // AddressList tries the first header matching the given key and parses it as an
@@ -292,7 +319,7 @@ func (m *Message) AddressList(key string) (addr.AddressList, error) {
 		return nil, err
 	}
 
-	return mm.HeaderGetAddressList(key)
+	return mm.GetHeader().GetAddressList(key)
 }
 
 // Subject returns the contents of the Subject header.
@@ -302,7 +329,7 @@ func (m *Message) Subject() (string, error) {
 		return "", err
 	}
 
-	return mm.HeaderGet("Subject"), nil
+	return mm.GetHeader().GetSubject()
 }
 
 // Folder returns the name of the folder that contains this email's file.
@@ -522,7 +549,15 @@ var (
 			*tests++
 
 			deliveredTo, err := m.AllAddressLists("Delivered-To")
-			return testAddress("Delivered-To", "delivered_to", c.DeliveredTo, deliveredTo, err)
+			var length int
+			for _, dt := range deliveredTo {
+				length += len(dt)
+			}
+			dts := make(addr.AddressList, 0, length)
+			for _, dt := range deliveredTo {
+				dts = append(dts, dt...)
+			}
+			return testAddress("Delivered-To", "delivered_to", c.DeliveredTo, dts, err)
 		},
 
 		// match if the message has a matching exact Subject header match
@@ -820,7 +855,7 @@ func (m *Message) Save() error {
 	defer w.Close()
 
 	// fmt.Println("START WRITING")
-	_, err = w.Write(mm.Bytes())
+	_, err = mm.WriteTo(w)
 	// fmt.Println("END WRITING")
 	if err != nil {
 		return fmt.Errorf("unable to save %q: %w", m.Filename(), err)
