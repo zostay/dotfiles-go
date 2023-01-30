@@ -149,7 +149,7 @@ func NewFilteredMessageList(
 // Next returns true if there is a message remaining to be read and copies it
 // into the given message pointer.
 func (ml *FilteredMessageList) Next(msg *Message) bool {
-	for ml.Next(msg) {
+	for ml.ml.Next(msg) {
 		ok, err := ml.pred(msg)
 		if err != nil {
 			ml.err = err
@@ -199,21 +199,19 @@ func (fi *Filter) Messages(folder string) (MessageList, error) {
 
 // AllFolders lists all the maildir folders in the mail root.
 func (fi *Filter) AllFolders() ([]string, error) {
-	var folderNames []string
-
 	md, err := os.Open(fi.mailRoot)
 	if err != nil {
-		return folderNames, err
+		return nil, err
 	}
 
 	defer md.Close()
 
 	folders, err := md.Readdir(0)
 	if err != nil {
-		return folderNames, err
+		return nil, err
 	}
 
-	folderNames = make([]string, 0, len(folders))
+	folderNames := make([]string, 0, len(folders))
 	for _, folder := range folders {
 		if !folder.IsDir() {
 			continue
@@ -334,14 +332,14 @@ func (fi *Filter) LabelFolderMessages(
 		// Purged, leave it be
 		has, err := msg.HasKeyword("\\Trash")
 		if err != nil {
-			return fmt.Errorf("error (skipping Trashed) in %q: %v", msg.Filename(), err)
+			return fmt.Errorf("error (skipping Trashed) in %q: %w", msg.Filename(), err)
 		} else if has {
 			continue
 		}
 
 		as, err := fi.ApplyRules(&msg, rules)
 		if err != nil {
-			return fmt.Errorf("error (applying rules) in %q: %v", msg.Filename(), err)
+			return fmt.Errorf("error (applying rules) in %q: %w", msg.Filename(), err)
 		}
 
 		for _, a := range as {

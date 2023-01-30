@@ -9,6 +9,8 @@ import (
 )
 
 func TestActionsSummary_String(t *testing.T) {
+	t.Parallel()
+
 	as := mail.ActionsSummary{
 		"one":   42,
 		"two":   13,

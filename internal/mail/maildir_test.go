@@ -8,6 +8,8 @@ import (
 )
 
 func TestNewMailDirFolder(t *testing.T) {
+	t.Parallel()
+
 	mdf := NewMailDirFolder("test/maildir", "INBOX")
 	assert.NotNil(t, mdf)
 
@@ -22,6 +24,8 @@ func TestNewMailDirFolder(t *testing.T) {
 }
 
 func TestDirFolder_Messages(t *testing.T) {
+	t.Parallel()
+
 	mdf := NewMailDirFolder("test/maildir", "INBOX")
 	assert.NotNil(t, mdf)
 
@@ -38,6 +42,8 @@ func TestDirFolder_Messages(t *testing.T) {
 }
 
 func TestDirFolder_Message(t *testing.T) {
+	t.Parallel()
+
 	mdf := NewMailDirFolder("test/maildir", "INBOX")
 	assert.NotNil(t, mdf)
 

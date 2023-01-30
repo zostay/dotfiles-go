@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -30,7 +31,7 @@ func RunGetSecret(cmd *cobra.Command, args []string) error {
 
 	secret, err := k.GetSecret(name)
 	if err != nil {
-		if err == secrets.ErrNotFound {
+		if errors.Is(err, secrets.ErrNotFound) {
 			fmt.Fprintf(os.Stderr, "Secret %q was not found.\n", name)
 			os.Exit(1)
 		}

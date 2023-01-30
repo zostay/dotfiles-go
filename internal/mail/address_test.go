@@ -1,7 +1,6 @@
 package mail
 
 import (
-	_ "net/http/pprof"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,6 +9,8 @@ import (
 )
 
 func TestAddressListStrings(t *testing.T) {
+	t.Parallel()
+
 	addrs, err := addr.ParseEmailAddressList("sterling@example.com, Foo@example.com, blahblah@example.com")
 	require.NoError(t, err)
 
@@ -23,6 +24,8 @@ func TestAddressListStrings(t *testing.T) {
 }
 
 func TestAddressListHTML(t *testing.T) {
+	t.Parallel()
+
 	addrs, err := addr.ParseEmailAddressList("sterling@example.com, Foo@example.com, blahblah@example.com")
 	require.NoError(t, err)
 

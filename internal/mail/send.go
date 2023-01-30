@@ -92,8 +92,8 @@ func (m *Message) ForwardMessage(to addr.AddressList, now time.Time) (io.WriterT
 		return nil, err
 	}
 
-	writeForwardMessageTextPrefix := func(w io.Writer) error {
-		_, _ = fmt.Fprintf(w, ForwardedMessagePrefix)
+	writeForwardMessageTextPrefix := func(w io.Writer) {
+		_, _ = fmt.Fprint(w, ForwardedMessagePrefix)
 		_, _ = fmt.Fprintf(w, "\nFrom: "+fwdFromList.String())
 		_, _ = fmt.Fprintf(w, "\nDate: "+fwdDate.Format(time.RFC1123))
 		_, _ = fmt.Fprintf(w, "\nSubject: "+fwdSubject)
@@ -102,13 +102,11 @@ func (m *Message) ForwardMessage(to addr.AddressList, now time.Time) (io.WriterT
 			_, _ = fmt.Fprintf(w, "\nCc: "+fwdCcList.String())
 		}
 		_, _ = fmt.Fprintf(w, "\n\n")
-
-		return nil
 	}
 
-	writeForwardMessageHtmlPrefix := func(w io.Writer) error {
-		_, _ = fmt.Fprintf(w, "<div><br></div><div><br><div>")
-		_, _ = fmt.Fprintf(w, ForwardedMessagePrefix)
+	writeForwardMessageHtmlPrefix := func(w io.Writer) {
+		_, _ = fmt.Fprint(w, "<div><br></div><div><br><div>")
+		_, _ = fmt.Fprint(w, ForwardedMessagePrefix)
 		_, _ = fmt.Fprintf(w, "<br>From: "+AddressListHTML(fwdFromList))
 		_, _ = fmt.Fprintf(w, "<br>Date: "+fwdDate.Format(time.RFC1123))
 		_, _ = fmt.Fprintf(w, "<br>Subject: "+html.EscapeString(fwdSubject))
@@ -116,38 +114,7 @@ func (m *Message) ForwardMessage(to addr.AddressList, now time.Time) (io.WriterT
 		if len(fwdCcList) > 0 {
 			_, _ = fmt.Fprintf(w, "<br>Cc: "+AddressListHTML(fwdCcList))
 		}
-		_, _ = fmt.Fprintf(w, "<br></div><br><br>")
-
-		return nil
-	}
-
-	if !mm.IsMultipart() {
-		mt, err := mm.GetHeader().GetMediaType()
-		if err != nil {
-			return nil, err
-		}
-
-		switch mt {
-		case "text/html":
-			err = writeForwardMessageHtmlPrefix(fm)
-			if err != nil {
-				return nil, err
-			}
-		case "text/plain":
-			err = writeForwardMessageTextPrefix(fm)
-			if err != nil {
-				return nil, err
-			}
-		default:
-			return nil, fmt.Errorf("unable to forward message of type %q", mt)
-		}
-
-		_, err = io.Copy(fm, mm.GetReader())
-		if err != nil {
-			return nil, err
-		}
-
-		return fm, nil
+		_, _ = fmt.Fprint(w, "<br></div><br><br>")
 	}
 
 	// We will flatten a complex multipart message to a single level by doing this.
@@ -157,15 +124,9 @@ func (m *Message) ForwardMessage(to addr.AddressList, now time.Time) (io.WriterT
 
 			mt, _ := part.GetHeader().GetMediaType()
 			if mt == "text/plain" {
-				err = writeForwardMessageTextPrefix(buf)
-				if err != nil {
-					return nil, err
-				}
+				writeForwardMessageTextPrefix(buf)
 			} else if mt == "text/html" {
-				err = writeForwardMessageHtmlPrefix(buf)
-				if err != nil {
-					return nil, err
-				}
+				writeForwardMessageHtmlPrefix(buf)
 			}
 
 			_, err = io.Copy(buf, part.GetReader())
@@ -178,6 +139,10 @@ func (m *Message) ForwardMessage(to addr.AddressList, now time.Time) (io.WriterT
 			return buf, nil
 		}, mm,
 	)
+
+	if err != nil {
+		return nil, err
+	}
 
 	return p.(*message.Buffer), nil
 }

@@ -37,13 +37,15 @@ var (
 )
 
 // Join returns a string that is the same as would be created by calling
-//  strings.Join(args, d)
+//
+//	strings.Join(args, d)
+//
 // but with the separator colored using the given color.
-func (cp ColorPalette) Join(color string, args []string, d string) string {
-	if c, ok := cp[color]; ok {
+func (cp ColorPalette) Join(cname string, args []string, d string) string {
+	if c, ok := cp[cname]; ok {
 		return strings.Join(args, c.Sprint(d))
 	} else {
-		panic("unknown color " + color)
+		panic("unknown color " + cname)
 	}
 }
 
@@ -78,7 +80,7 @@ func (cp ColorPalette) Scolor(args ...string) string {
 			if c, ok := cp[cname]; ok {
 				c.Fprint(&out, v)
 			} else {
-				panic("unknown cname " + cname)
+				panic("unknown color " + cname)
 			}
 		}
 	}
@@ -87,19 +89,19 @@ func (cp ColorPalette) Scolor(args ...string) string {
 
 // Fprintf formats the string using the fmt and args, colors it with the color,
 // and writes it out to the given io.Writer.
-func (cp ColorPalette) Fprintf(color string, out io.Writer, fmt string, args ...interface{}) {
-	if c, ok := cp[color]; ok {
+func (cp ColorPalette) Fprintf(cname string, out io.Writer, fmt string, args ...interface{}) {
+	if c, ok := cp[cname]; ok {
 		c.Fprintf(out, fmt, args...)
 		return
 	}
-	panic("unknown color " + color)
+	panic("unknown cname " + cname)
 }
 
 // Sprintf formats the string using the fmt and args, colors it with the color,
 // and returns it as a string.
-func (cp ColorPalette) Sprintf(color string, fmt string, args ...interface{}) string {
-	if c, ok := cp[color]; ok {
+func (cp ColorPalette) Sprintf(cname string, fmt string, args ...interface{}) string {
+	if c, ok := cp[cname]; ok {
 		return c.Sprintf(fmt, args...)
 	}
-	panic("unknown color " + color)
+	panic("unknown color " + cname)
 }

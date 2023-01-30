@@ -23,6 +23,8 @@ func mkFilterDR(t *testing.T) *Filter {
 }
 
 func TestNewFilter(t *testing.T) {
+	t.Parallel()
+
 	_, err := NewFilter("test/maildir", "test/nonexistent-rules.yml", "test/local.yml")
 	assert.Error(t, err)
 
@@ -35,6 +37,8 @@ func TestNewFilter(t *testing.T) {
 }
 
 func TestFilter_LimitSince(t *testing.T) {
+	t.Parallel()
+
 	f := mkFilter(t)
 
 	f.LimitFilterToRecent(48 * time.Hour)
@@ -44,6 +48,8 @@ func TestFilter_LimitSince(t *testing.T) {
 }
 
 func TestFilter_Message(t *testing.T) {
+	t.Parallel()
+
 	f := mkFilter(t)
 
 	msg, err := f.Message("INBOX", "1:2,S")
@@ -62,6 +68,8 @@ func TestFilter_Message(t *testing.T) {
 }
 
 func TestFilter_Messages(t *testing.T) {
+	t.Parallel()
+
 	f := mkFilter(t)
 
 	msgs, err := f.Messages("INBOX")
@@ -101,6 +109,8 @@ func TestFilter_Messages(t *testing.T) {
 }
 
 func TestFilter_AllFolders(t *testing.T) {
+	t.Parallel()
+
 	f := mkFilter(t)
 
 	folders, err := f.AllFolders()
@@ -113,6 +123,8 @@ func TestFilter_AllFolders(t *testing.T) {
 }
 
 func TestFilter_RulesForFolder(t *testing.T) {
+	t.Parallel()
+
 	f := mkFilter(t)
 
 	rules := f.RulesForFolder("INBOX")
@@ -142,6 +154,8 @@ func TestFilter_RulesForFolder(t *testing.T) {
 }
 
 func TestFilter_LabelMessage(t *testing.T) {
+	t.Parallel()
+
 	f := mkFilterDR(t)
 
 	actions, err := f.LabelMessage("INBOX", "1:2,S")
@@ -153,6 +167,8 @@ func TestFilter_LabelMessage(t *testing.T) {
 }
 
 func TestFilter_LabelMessages(t *testing.T) {
+	t.Parallel()
+
 	f := mkFilterDR(t)
 
 	actions, err := f.LabelMessages([]string{"INBOX"})

@@ -65,7 +65,7 @@ func (ml *DirFolderMessageList) Next(msg *Message) bool {
 			continue
 		}
 
-		m := ml.parent.message(rd, fi.Name(), fi)
+		m := ml.parent.message(rd, fi)
 		*msg = *m // shallow copy
 
 		return true

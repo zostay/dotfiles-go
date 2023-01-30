@@ -20,7 +20,7 @@ var (
 	// UnwantedKeyword mentions remaps of folders we want to apply during
 	// vacuuming.
 	UnwantedKeyword = map[string][]string{
-		"JunkSocial":                {"Network", "Pseudo-Junk.Social", "Pseudo-Junk/Social", "Psuedo-Junk/Social_Network", "Pseudo-Junk.Social_Network"},
+		"JunkSocial":                {"Network", "Pseudo-Junk.Social", "Pseudo-Junk/Social", "Pseudo-Junk/Social_Network", "Pseudo-Junk.Social_Network"},
 		"Teamwork":                  {"Discussion"},
 		"JunkOther":                 {"OtherJunk"},
 		"Pseudo-Junk.ToDo":          {"Do", "Pseudo-Junk.To", "Pseudo-Junk.To_Do"},
@@ -59,7 +59,7 @@ func isUnwanted(folder string) bool {
 	return false
 }
 
-// hasUnwantedKeyword returns true if the message contains an undesireable
+// hasUnwantedKeyword returns true if the message contains an undesirable
 // keyword during vacuuming.
 func hasUnwantedKeyword(msg *Message) ([]string, string, error) {
 	for tok, uks := range UnwantedKeyword {
@@ -74,7 +74,7 @@ func hasUnwantedKeyword(msg *Message) ([]string, string, error) {
 	return []string{}, "", nil
 }
 
-// Vacuum performs the vacuum operation which attempts to clean up undesireable
+// Vacuum performs the vacuum operation which attempts to clean up undesirable
 // folder and keywords from my mail root.
 func (fi *Filter) Vacuum() error {
 	folders, err := fi.AllFolders()

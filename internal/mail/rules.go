@@ -73,7 +73,7 @@ type Match struct {
 	Days int `yaml:"days"`
 }
 
-// CompiledRule is the match after it has been processed by teh rule compiler.
+// CompiledRule is the match after it has been processed by the rule compiler.
 type CompiledRule struct {
 	// Match is the original rule taken from the configuration file.
 	Match
@@ -210,21 +210,19 @@ func DefaultLocalRulesConfigPath() string {
 // localized configuration file with no environment sections (usually located at
 // ~/.label-mail.local.yaml).
 func LoadRules(primary, local string) (CompiledRules, error) {
-	var crs CompiledRules
-
 	env, err := dotfiles.Environment()
 	if err != nil {
-		return crs, err
+		return nil, err
 	}
 
 	pr, err := LoadEnvRawRules(primary)
 	if err != nil {
-		return crs, err
+		return nil, err
 	}
 
 	lr, err := LoadRawRules(local)
 	if err != nil {
-		return crs, err
+		return nil, err
 	}
 
 	ruleCount := len(lr)
@@ -251,7 +249,7 @@ func LoadRules(primary, local string) (CompiledRules, error) {
 	}
 	addRules(lr)
 
-	crs = make(CompiledRules, 0, len(rr))
+	crs := make(CompiledRules, 0, len(rr))
 	for _, r := range rr {
 		compiledLabel := CompileLabel("label", r.Label)
 		compiledClear := CompileLabel("clear", r.Clear)
@@ -261,7 +259,7 @@ func LoadRules(primary, local string) (CompiledRules, error) {
 			if ns, ok := labelBoxes[compiledMove]; ok {
 				compiledMove = ns
 			}
-			compiledMove = strings.Replace(compiledMove, "/", ".", -1)
+			compiledMove = strings.ReplaceAll(compiledMove, "/", ".")
 		}
 
 		compiledForward, err := CompileAddress("forward", r.Forward)
@@ -358,7 +356,7 @@ func CompileLabel(name string, label interface{}) []string {
 	}
 
 	for i, s := range r2 {
-		s = strings.Replace(s, ".", "/", -1)
+		s = strings.ReplaceAll(s, ".", "/")
 		if ns, ok := boxLabels[s]; ok {
 			s = ns
 		}

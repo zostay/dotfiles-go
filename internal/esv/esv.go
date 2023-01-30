@@ -10,12 +10,12 @@ import (
 )
 
 func RandomBook() Book {
-	return Books[rand.Int()%len(Books)]
+	return Books[rand.Int()%len(Books)] //nolint:gosec // weak random is fine here
 }
 
 func RandomPassage(b Book) []VerseRef {
-	x := rand.Int() % len(b.verses)
-	o := rand.Int() % 30
+	x := rand.Int() % len(b.verses) //nolint:gosec // weak random is fine here
+	o := rand.Int() % 30            //nolint:gosec // weak random is fine here
 	y := x + o
 	if y >= len(b.verses) {
 		y = len(b.verses) - 1

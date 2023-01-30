@@ -12,7 +12,8 @@ import (
 type ActionsSummary map[string]int
 
 // String returns a nice tabular summary of the actions to the console.
-//  fmt.Print(action)
+//
+//	fmt.Print(action)
 func (actions ActionsSummary) String() string {
 	var out strings.Builder
 

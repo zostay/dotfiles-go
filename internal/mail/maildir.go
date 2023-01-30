@@ -45,7 +45,7 @@ func (f *DirFolder) TempDirPath() string {
 }
 
 // message combines the common code of Message and Messages.
-func (f *DirFolder) message(rd, fn string, fi os.FileInfo) *Message {
+func (f *DirFolder) message(rd string, fi os.FileInfo) *Message {
 	var key, flags string
 	if strings.ContainsRune(fi.Name(), ':') {
 		parts := strings.SplitN(fi.Name(), ":", 2)
@@ -68,7 +68,7 @@ func (f *DirFolder) Message(fn string) (*Message, error) {
 			continue
 		}
 
-		return f.message(rd, fn, fi), nil
+		return f.message(rd, fi), nil
 	}
 
 	return nil, fmt.Errorf("no message named %q in folder %q", fn, f.Path())
@@ -76,17 +76,18 @@ func (f *DirFolder) Message(fn string) (*Message, error) {
 
 // Messages returns a MessageList, which can be used to efficiently iterate
 // through all messages in a folder.
-//  msgs, err := folder.Messages()
-//  if err != nil {
-//    panic(err)
-//  }
-//  var msg Message
-//  for msgs.Next(&msg) {
-//    # process msg ...
-//  }
-//  if err := msgs.Err(); err != nil {
-//    panic(err)
-//  }
+//
+//	msgs, err := folder.Messages()
+//	if err != nil {
+//	  panic(err)
+//	}
+//	var msg Message
+//	for msgs.Next(&msg) {
+//	  # process msg ...
+//	}
+//	if err := msgs.Err(); err != nil {
+//	  panic(err)
+//	}
 func (f *DirFolder) Messages() (*DirFolderMessageList, error) {
 	fism := make(map[string][]os.FileInfo)
 	fiCount := 0
