@@ -13,6 +13,7 @@ import (
 
 	"github.com/zostay/go-addr/pkg/addr"
 	"github.com/zostay/go-email/v2/message"
+	"github.com/zostay/go-email/v2/message/header"
 
 	"github.com/zostay/dotfiles-go/internal/xtrings"
 	"github.com/zostay/dotfiles-go/pkg/secrets"
@@ -133,7 +134,11 @@ func (m *Message) Keywords() ([]string, error) {
 		return nil, err
 	}
 
-	return mm.GetHeader().GetKeywords()
+	ks, err := mm.GetHeader().GetKeywords()
+	if errors.Is(err, header.ErrNoSuchField) {
+		return []string{}, nil
+	}
+	return ks, err
 }
 
 // KeywordsSet returns the contents of the Keywords header as a set or an error.
