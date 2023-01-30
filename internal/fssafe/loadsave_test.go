@@ -2,7 +2,6 @@ package fssafe
 
 import (
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"testing"
@@ -20,14 +19,16 @@ var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 func RandString(n int) string {
 	b := make([]rune, n)
 	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+		b[i] = letterRunes[rand.Intn(len(letterRunes))] //nolint:gosec // test does not need secure random
 	}
 	return string(b)
 }
 
 func TestLoaderSaver(t *testing.T) {
+	t.Parallel()
+
 	// get a tempfile to work with
-	tmpfile, err := ioutil.TempFile(os.TempDir(), "kbdx")
+	tmpfile, err := os.CreateTemp(os.TempDir(), "kbdx")
 	if !assert.NoError(t, err, "able to get a tempfile") {
 		return
 	}
@@ -65,7 +66,7 @@ func TestLoaderSaver(t *testing.T) {
 		return
 	}
 
-	sr, err := ioutil.ReadAll(r)
+	sr, err := io.ReadAll(r)
 	if !assert.NoError(t, err, "reading file should not have an err") {
 		return
 	}

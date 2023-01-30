@@ -7,6 +7,8 @@ import (
 )
 
 func TestContainsFold(t *testing.T) {
+	t.Parallel()
+
 	var data = []struct {
 		s      string
 		substr string

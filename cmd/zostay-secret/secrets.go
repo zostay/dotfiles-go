@@ -18,7 +18,7 @@ import (
 //
 // Otherwise, if --master is set, then this returns
 //
-//  secrets.Master()
+//	secrets.Master()
 //
 // If --remote-only is set, this returns either secrets.SecureMain() or
 // secrets.InsecureMain() based on the --insecure option.
@@ -36,13 +36,14 @@ func secretKeeper() (secrets.Keeper, error) {
 	}
 
 	var k secrets.Keeper
-	if masterOnly {
+	switch {
+	case masterOnly:
 		var err error
 		k, err = secrets.Master()
 		if err != nil {
 			panic(err)
 		}
-	} else if remoteOnly {
+	case remoteOnly:
 		var err error
 		if insecure {
 			k, err = secrets.InsecureMain()
@@ -53,7 +54,7 @@ func secretKeeper() (secrets.Keeper, error) {
 		if err != nil {
 			panic(err)
 		}
-	} else if localOnly {
+	case localOnly:
 		var err error
 		if insecure {
 			k, err = secrets.InsecureLocal()
@@ -64,7 +65,7 @@ func secretKeeper() (secrets.Keeper, error) {
 		if err != nil {
 			panic(err)
 		}
-	} else {
+	default:
 		var err error
 		if insecure {
 			k, err = secrets.Insecure()
