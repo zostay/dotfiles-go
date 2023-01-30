@@ -2,12 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -15,7 +16,8 @@ import (
 )
 
 const (
-	SecretServiceName = "zostay-dotfiles" // the service to use with the system keyring service
+	// SecretServiceName is the service to use with the system keyring service
+	SecretServiceName = "zostay-dotfiles" //nolint:gosec // this is not secret
 )
 
 var (
@@ -47,13 +49,13 @@ type SecretResponse struct {
 
 // handleGetSecret looks up the secret named in the request and retrieves it
 // from the Keeper. If the retrieval succeeds, the secret is returned in a 200
-// respone. If the retrieval failes with secrets.ErrNotFound, it returns a 404.
+// response. If the retrieval failes with secrets.ErrNotFound, it returns a 404.
 // If retrieval fails due to another error in the secrets.Keeper, it returns a
 // 500.
 func handleGetSecret(w http.ResponseWriter, r *http.Request, sr *SecretResponse) {
 	name := r.FormValue("name")
 	s, err := k.GetSecret(name)
-	if err == secrets.ErrNotFound {
+	if errors.Is(err, secrets.ErrNotFound) {
 		w.WriteHeader(404)
 		sr.Err = "Not Found"
 		return
@@ -70,7 +72,7 @@ func handleGetSecret(w http.ResponseWriter, r *http.Request, sr *SecretResponse)
 // secret value givin the rquest. On success, it returns 200. On failure, it
 // returns 400 (on client error) or 500 (on server error).
 func handleSetSecret(w http.ResponseWriter, r *http.Request, sr *SecretResponse) {
-	bs, err := ioutil.ReadAll(r.Body)
+	bs, err := io.ReadAll(r.Body)
 	if err != nil {
 		l.Printf("failed to read request: %v", err)
 
@@ -108,11 +110,12 @@ func handleSetSecret(w http.ResponseWriter, r *http.Request, sr *SecretResponse)
 // appropriate internal handler based on the request method.
 func SecretServerHandler(w http.ResponseWriter, r *http.Request) {
 	var sr SecretResponse
-	if r.Method == "GET" {
+	switch r.Method {
+	case "GET":
 		handleGetSecret(w, r, &sr)
-	} else if r.Method == "POST" {
+	case "POST":
 		handleSetSecret(w, r, &sr)
-	} else {
+	default:
 		w.WriteHeader(405)
 		sr.Err = "Invalid Method"
 	}
@@ -149,8 +152,17 @@ func RunSecretKeeper(cmd *cobra.Command, args []string) {
 	lt.AddKeeper(rk)
 
 	k = lt
-	http.Handle("/ping", http.HandlerFunc(PingHandler))
-	http.Handle("/secret", http.HandlerFunc(SecretServerHandler))
+	mux := &http.ServeMux{}
+	mux.Handle("/ping", http.HandlerFunc(PingHandler))
+	mux.Handle("/secret", http.HandlerFunc(SecretServerHandler))
 	fmt.Println("Starting secret keeper server.")
-	l.Fatal(http.ListenAndServe(secrets.MySecretKeeper, nil))
+
+	srv := http.Server{
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		Addr:         secrets.MySecretKeeper,
+		Handler:      mux,
+	}
+
+	l.Fatal(srv.ListenAndServe())
 }

@@ -40,3 +40,11 @@ func TestColorPalette_Sprintf(t *testing.T) {
 		assert.Equal(t, expect, s)
 	})
 }
+
+func TestColorPalette_Join(t *testing.T) {
+	withColor(func() {
+		s := cp.Join("label", []string{"one", "two", "three"}, ",")
+		const expect = "one\x1b[34m,\x1b[0mtwo\x1b[34m,\x1b[0mthree"
+		assert.Equal(t, expect, s)
+	})
+}
