@@ -22,7 +22,7 @@ require (
 	github.com/zalando/go-keyring v0.1.0
 	github.com/zostay/go-addr v0.0.0-20220105211316-2b86a76c0730
 	github.com/zostay/go-email v0.0.0-20220317163434-3922e3553e84
-	github.com/zostay/go-email/v2 v2.2.0
+	github.com/zostay/go-email/v2 v2.2.1
 	github.com/zostay/go-esv-api v0.0.0-20201114154340-be89d3d9bb0c
 	gopkg.in/yaml.v3 v3.0.1
 )
