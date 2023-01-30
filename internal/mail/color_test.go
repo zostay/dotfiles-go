@@ -15,7 +15,7 @@ func withColor(f func()) {
 	f()
 }
 
-func TestColorPalette_Fcolor(t *testing.T) {
+func TestColorPalette_Fcolor(t *testing.T) { //nolint:paralleltest // changes globals
 	withColor(func() {
 		buf := &strings.Builder{}
 		cp.Fcolor(buf, "reading", "one", "dropping", "two")
@@ -24,7 +24,7 @@ func TestColorPalette_Fcolor(t *testing.T) {
 	})
 }
 
-func TestColorPalette_Fprintf(t *testing.T) {
+func TestColorPalette_Fprintf(t *testing.T) { //nolint:paralleltest // changes globals
 	withColor(func() {
 		buf := &strings.Builder{}
 		cp.Fprintf("forwarding", buf, "test %d", 42)
@@ -33,7 +33,7 @@ func TestColorPalette_Fprintf(t *testing.T) {
 	})
 }
 
-func TestColorPalette_Sprintf(t *testing.T) {
+func TestColorPalette_Sprintf(t *testing.T) { //nolint:paralleltest // changes globals
 	withColor(func() {
 		s := cp.Sprintf("fail", "test %d", 42)
 		const expect = "\x1b[91mtest 42\x1b[0m"
@@ -41,7 +41,7 @@ func TestColorPalette_Sprintf(t *testing.T) {
 	})
 }
 
-func TestColorPalette_Join(t *testing.T) {
+func TestColorPalette_Join(t *testing.T) { //nolint:paralleltest // changes globals
 	withColor(func() {
 		s := cp.Join("label", []string{"one", "two", "three"}, ",")
 		const expect = "one\x1b[34m,\x1b[0mtwo\x1b[34m,\x1b[0mthree"
