@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -32,8 +33,8 @@ type Message struct {
 	// r is the mechanism used for reading in the message
 	r Slurper
 
-	// m is the MIME message representation once parsed
-	m message.Generic
+	// m is the cached header of the message
+	h *header.Header
 }
 
 // NewMessage creates a *Message from a Slurper.
@@ -72,38 +73,60 @@ func (m *Message) Stat() (os.FileInfo, error) {
 	return m.r.Stat()
 }
 
-// EmailMessage returns the message.Opaque with headers parsed or returns an
-// error.
-func (m *Message) EmailMessage() (message.Generic, error) {
-	if m.m != nil {
-		return m.m, nil
+// EmailHeader returns the header.Header for the message. This value will be
+// cached.
+func (m *Message) EmailHeader() (*header.Header, error) {
+	if m.h != nil {
+		return m.h, nil
 	}
 
 	r, err := m.r.Reader()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read the email message: %w", err)
 	}
 
-	m.m, err = message.Parse(r, message.WithoutMultipart())
-	return m.m, err
+	mm, err := message.Parse(r, message.WithoutMultipart())
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse the email message: %w", err)
+	}
+
+	m.h = mm.GetHeader()
+	return m.h, nil
+}
+
+// OpaqueEmailMessage returns the message.Opaque representation of the message.
+// This is loaded from disk each time and is not cached.
+func (m *Message) OpaqueEmailMessage() (message.Generic, error) {
+	r, err := m.r.Reader()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read the email message: %w", err)
+	}
+
+	mm, err := message.Parse(r, message.WithoutMultipart())
+	if err != nil {
+		return mm, fmt.Errorf("failed to parse the email message: %w", err)
+	}
+
+	return mm, nil
 }
 
 // MultipartEmailMessage returns the message.Multipart or message.Opaque parsed
-// or returns an error.
+// or returns an error. This is loaded from disk each time and is not cached.
 func (m *Message) MultipartEmailMessage() (message.Generic, error) {
-	if m.m != nil {
-		return m.m, nil
-	}
-
+	// NO CACHING IN HERE
 	r, err := m.r.Reader()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to read the (possibly multipart) message: %w", err)
 	}
 
-	m.m, err = message.Parse(r,
+	mm, err := message.Parse(r,
 		message.WithUnlimitedRecursion(),
 		message.WithMaxPartLength(message.DefaultMaxPartLength*1_000))
-	return m.m, err
+	if err != nil {
+		return mm, fmt.Errorf("failed to parse the (possibly multipart) message: %w", err)
+	}
+
+	return mm, nil
 }
 
 // Raw returns the byte representation of the original read in message or an
@@ -111,33 +134,67 @@ func (m *Message) MultipartEmailMessage() (message.Generic, error) {
 func (m *Message) Raw() ([]byte, error) {
 	r, err := m.r.Reader()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to return raw bytes of the message: %w", err)
 	}
 	return io.ReadAll(r)
 }
 
 // Date returns the contents of hte Date hread of the message or an error.
 func (m *Message) Date() (time.Time, error) {
-	mm, err := m.EmailMessage()
+	mh, err := m.EmailHeader()
 	if err != nil {
-		return time.Time{}, err
+		return time.Time{}, fmt.Errorf("failed to get the date of the message: %w", err)
 	}
 
-	return mm.GetHeader().GetDate()
+	t, err := mh.GetDate()
+	if errors.Is(err, header.ErrManyFields) {
+		// many Date fields is not okay, but let's cope by taking the first
+		// parseable date field as the one we'll use
+		for i := 0; ; i++ {
+			f := mh.GetFieldNamed(header.Date, i)
+			if f == nil {
+				break
+			}
+
+			t, err := header.ParseTime(f.Body())
+			if err == nil {
+				return t, nil
+			}
+		}
+		return time.Time{}, fmt.Errorf("multiple Date fields; none will parse as a time")
+	} else if err != nil {
+		return time.Time{}, fmt.Errorf("error getting Date: %w", err)
+	}
+	return t, nil
 }
+
+var splitKeywords = regexp.MustCompile(`\s+`)
 
 // Keywords returns the contents of the Keywords header of the message as a
 // slice of strings or an error.
+//
+// We do our own parsing because offlineimap uses Keywords wrong.
 func (m *Message) Keywords() ([]string, error) {
-	mm, err := m.EmailMessage()
+	mh, err := m.EmailHeader()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get the keywords of the message: %w", err)
 	}
 
-	ks, err := mm.GetHeader().GetKeywords()
+	ks, err := mh.GetAll(header.Keywords)
 	if errors.Is(err, header.ErrNoSuchField) {
 		return []string{}, nil
 	}
+
+	allKs := make([]string, 0, len(ks))
+	for _, k := range ks {
+		if k == "" {
+			continue
+		}
+
+		splits := splitKeywords.Split(k, -1)
+		allKs = append(allKs, splits...)
+	}
+
 	return ks, err
 }
 
@@ -158,14 +215,9 @@ func (m *Message) KeywordsSet() (km map[string]struct{}, err error) {
 
 // HasNonconformingKeywords returns true if the Keywords header is mailformed.
 func (m *Message) HasNonconformingKeywords() (bool, error) {
-	mm, err := m.EmailMessage()
+	sk, err := m.Keywords()
 	if err != nil {
-		return false, err
-	}
-
-	sk, err := mm.GetHeader().GetKeywords()
-	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed retrieving keywords while checking them: %w", err)
 	}
 
 	for _, k := range sk {
@@ -188,7 +240,7 @@ func (m *Message) HasNonconformingKeywords() (bool, error) {
 func (m *Message) HasKeyword(names ...string) (bool, error) {
 	km, err := m.KeywordsSet()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to get keywords while checking keyword existance: %w", err)
 	}
 
 	for _, n := range names {
@@ -207,7 +259,7 @@ func (m *Message) HasKeyword(names ...string) (bool, error) {
 func (m *Message) MissingKeyword(names ...string) (bool, error) {
 	km, err := m.KeywordsSet()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to get keywords while checking keyword non-existance: %w", err)
 	}
 
 	for _, n := range names {
@@ -225,7 +277,7 @@ func (m *Message) MissingKeyword(names ...string) (bool, error) {
 func (m *Message) CleanupKeywords() error {
 	km, err := m.KeywordsSet()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get keywords while cleaning up keywords: %w", err)
 	}
 
 	return m.updateKeywords(km)
@@ -241,7 +293,7 @@ func (m *Message) AddKeyword(names ...string) error {
 
 	km, err := m.KeywordsSet()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get keywords while adding to them: %w", err)
 	}
 
 	for _, n := range names {
@@ -259,9 +311,9 @@ func (m *Message) AddKeyword(names ...string) error {
 // header. Returns ane error if it has a problem reading the email message or
 // writing to the Keywords header.
 func (m *Message) updateKeywords(km map[string]struct{}) error {
-	mm, err := m.EmailMessage()
+	mh, err := m.EmailHeader()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed reading email while updating keywords: %w", err)
 	}
 
 	ks := make([]string, 0, len(km))
@@ -270,10 +322,11 @@ func (m *Message) updateKeywords(km map[string]struct{}) error {
 	}
 
 	sort.Strings(ks)
+	k := strings.Join(ks, " ")
 
-	mm.GetHeader().SetKeywords(ks...)
+	mh.Set(header.Keywords, k)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to set keywords in email: %w", err)
 	}
 
 	return nil
@@ -289,7 +342,7 @@ func (m *Message) RemoveKeyword(names ...string) error {
 
 	km, err := m.KeywordsSet()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get keywords while removing some: %w", err)
 	}
 
 	for _, n := range names {
@@ -308,41 +361,45 @@ func (m *Message) RemoveKeyword(names ...string) error {
 // Returns an error if it has trouble reading the message or parsing the address
 // lists.
 func (m *Message) AllAddressLists(key string) ([]addr.AddressList, error) {
-	mm, err := m.EmailMessage()
+	mh, err := m.EmailHeader()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to pull address lists for %q; %w", key, err)
 	}
 
-	als, err := mm.GetHeader().GetAllAddressLists(key)
+	als, err := mh.GetAllAddressLists(key)
 	if errors.Is(err, header.ErrNoSuchField) {
 		return nil, nil
+	} else if err != nil {
+		return als, fmt.Errorf("failed to get all address lists for %q: %w", key, err)
 	}
-	return als, err
+	return als, nil
 }
 
 // AddressList tries the first header matching the given key and parses it as an
 // address list. It returns the parsed list or returns ane error.
 func (m *Message) AddressList(key string) (addr.AddressList, error) {
-	mm, err := m.EmailMessage()
+	mh, err := m.EmailHeader()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to pull address list for %q: %w", key, err)
 	}
 
-	al, err := mm.GetHeader().GetAddressList(key)
+	al, err := mh.GetAddressList(key)
 	if errors.Is(err, header.ErrNoSuchField) {
 		return nil, nil
+	} else if err != nil {
+		return al, fmt.Errorf("failed to get address list for %q: %w", key, err)
 	}
-	return al, err
+	return al, nil
 }
 
 // Subject returns the contents of the Subject header.
 func (m *Message) Subject() (string, error) {
-	mm, err := m.EmailMessage()
+	mh, err := m.EmailHeader()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to read email address will pulling Subject: %w", err)
 	}
 
-	return mm.GetHeader().GetSubject()
+	return mh.GetSubject()
 }
 
 // Folder returns the name of the folder that contains this email's file.
@@ -856,22 +913,59 @@ func (m *Message) MoveTo(root string, name string) error {
 
 // Save saves any modifications made to the message to disk.
 func (m *Message) Save() error {
-	mm, err := m.EmailMessage()
+	// We've been modifying the cached header, so we need that
+	mh, err := m.EmailHeader()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to load email header prior to save: %w", err)
 	}
 
+	// But the message body we want to pull from the originally
+	mm, err := m.OpaqueEmailMessage()
+	if err != nil {
+		return fmt.Errorf("unable to load email message prior to save: %w", err)
+	}
+
+	// Create a buffer with the new header, but the existing body...
+	mb := &message.Buffer{
+		Header: *mh,
+	}
+	_, err = io.Copy(mb, mm.GetReader())
+	if err != nil {
+		return fmt.Errorf("unable to copy email message content to buffer during save: %w", err)
+	}
+
+	// Setup a tmp writer for stuffing the new message
 	w, err := m.r.(*DirSlurper).Replace()
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to replace email message during save: %w", err)
 	}
+
+	// On close, tmp will be renamed to it's permanent home
 	defer w.Close()
 
+	// SANITY CHECK
+	bs, err := m.Raw()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "FAIL: unable to get raw message: %v", err)
+	}
+
+	// Write the modified message to the tmp maildir
 	// fmt.Println("START WRITING")
-	_, err = mm.WriteTo(w)
+	n, err := mb.WriteTo(w)
 	// fmt.Println("END WRITING")
 	if err != nil {
 		return fmt.Errorf("unable to save %q: %w", m.Filename(), err)
+	}
+
+	// SANITY CHECK
+	delta := int64(len(bs)) - n
+	if delta < 0 {
+		delta = -delta
+	}
+	if delta > 100 {
+		f, _ := m.Folder()
+		fi := m.Filename()
+		fmt.Fprintf(os.Stderr, "BIG CHANGE: %q %q (delta is %d)\n", f, fi, delta)
 	}
 
 	return nil
@@ -882,7 +976,7 @@ func (m *Message) Save() error {
 func (m *Message) BestAlternateFolder() (string, error) {
 	ks, err := m.Keywords()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("unabel to load keywords to find best folder: %w", err)
 	}
 
 	if len(ks) > 0 && strings.Contains(ks[0], "Social") {

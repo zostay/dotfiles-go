@@ -152,7 +152,7 @@ func (m *Message) ForwardMessage(to addr.AddressList, now time.Time) (io.WriterT
 func (m *Message) ForwardTo(tos addr.AddressList, now time.Time) error {
 	auth := sasl.NewPlainClient("", SASLUser, SASLPass)
 
-	mm, err := m.EmailMessage()
+	mm, err := m.OpaqueEmailMessage()
 	if err != nil {
 		return err
 	}

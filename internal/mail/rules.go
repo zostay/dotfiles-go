@@ -1,6 +1,7 @@
 package mail
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"strings"
@@ -170,11 +171,14 @@ func LoadEnvRawRules(rulePath string) (EnvRawRules, error) {
 
 	lbs, err := os.ReadFile(rulePath)
 	if err != nil {
-		return pr, err
+		return pr, fmt.Errorf("failed to read env rule file %s: %w", rulePath, err)
 	}
 
 	err = yaml.Unmarshal(lbs, &pr)
-	return pr, err
+	if err != nil {
+		return pr, fmt.Errorf("failed to parse YAML in env rule file %s: %w", rulePath, err)
+	}
+	return pr, nil
 }
 
 // LoadRawRules loads the rules as a single section. (No sections split out by
@@ -183,11 +187,15 @@ func LoadRawRules(rulePath string) (RawRules, error) {
 	var lr RawRules
 	llbs, err := os.ReadFile(rulePath)
 	if err != nil {
-		return lr, err
+		return lr, fmt.Errorf("failed to read rule file %s: %w", rulePath, err)
 	}
 
 	err = yaml.Unmarshal(llbs, &lr)
-	return lr, err
+	if err != nil {
+		return lr, fmt.Errorf("failed to parse YAML in rule flie %s: %w", rulePath, err)
+	}
+	return lr, nil
+
 }
 
 // DefaultPrimaryRulesConfigPath returns the default location for the primary
@@ -212,17 +220,17 @@ func DefaultLocalRulesConfigPath() string {
 func LoadRules(primary, local string) (CompiledRules, error) {
 	env, err := dotfiles.Environment()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to determine environment name while loading ruless: Tw", err)
 	}
 
 	pr, err := LoadEnvRawRules(primary)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load env rules file %s: %w", primary, err)
 	}
 
 	lr, err := LoadRawRules(local)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load rules file %s: %w", local, err)
 	}
 
 	ruleCount := len(lr)
@@ -264,7 +272,7 @@ func LoadRules(primary, local string) (CompiledRules, error) {
 
 		compiledForward, err := CompileAddress("forward", r.Forward)
 		if err != nil {
-			return crs, err
+			return crs, fmt.Errorf("filed to compile forwarding address: %w", err)
 		}
 
 		if len(compiledLabel) == 0 && len(compiledClear) == 0 && compiledMove == "" && len(compiledForward) == 0 {
@@ -330,7 +338,7 @@ func CompileAddress(name string, a interface{}) (addr.AddressList, error) {
 		var err error
 		r2[i], err = addr.ParseEmailAddress(a)
 		if err != nil {
-			return r2, err
+			return r2, fmt.Errorf("failed to compile email address %q: %w", a, err)
 		}
 	}
 	return r2, nil

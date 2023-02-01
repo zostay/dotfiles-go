@@ -313,7 +313,7 @@ func (fi *Filter) LabelFolderMessages(
 ) error {
 	msgs, err := fi.Messages(folder)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to label message: %w", err)
 	}
 
 	var msg Message
