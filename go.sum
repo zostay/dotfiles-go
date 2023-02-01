@@ -173,12 +173,6 @@ github.com/zostay/go-addr v0.0.0-20220105211316-2b86a76c0730 h1:C9gZTiShrNiAANu1
 github.com/zostay/go-addr v0.0.0-20220105211316-2b86a76c0730/go.mod h1:tG7AdJGatrC29Uncw2yXm2aGe5/wuT/WaRsPg+83ynU=
 github.com/zostay/go-email v0.0.0-20220317163434-3922e3553e84 h1:/vomlOPaGUzOtuB8qikpfpGTJ8W/++ALKVQ9BkvtvMw=
 github.com/zostay/go-email v0.0.0-20220317163434-3922e3553e84/go.mod h1:qAo0niR6n7gx37R44m4tGg8Y3dmVyg191iMaH3izmBI=
-github.com/zostay/go-email/v2 v2.2.0 h1:+Uujra1CcIb4wvsEpNuNflTeuCD0JwmfUhLBkDlTBUE=
-github.com/zostay/go-email/v2 v2.2.0/go.mod h1:mNbDhrYvFCNa1kEJslMOAzplZm4EiBtFFjfbQMxbx4E=
-github.com/zostay/go-email/v2 v2.2.1 h1:zWk5vBWrq43kDG3wJ3Gq9z/UOrZ20UYfQnj6QwSUsMU=
-github.com/zostay/go-email/v2 v2.2.1/go.mod h1:mNbDhrYvFCNa1kEJslMOAzplZm4EiBtFFjfbQMxbx4E=
-github.com/zostay/go-email/v2 v2.3.0 h1:fo/DKcJ4MJozSkErHWdYgzZaeMD1Imi8/Kb5OBe81QM=
-github.com/zostay/go-email/v2 v2.3.0/go.mod h1:mNbDhrYvFCNa1kEJslMOAzplZm4EiBtFFjfbQMxbx4E=
 github.com/zostay/go-email/v2 v2.3.1 h1:picDcwX0Ye3/vQehmwd+oyA5R8elzMUcsGzWKgb/bXY=
 github.com/zostay/go-email/v2 v2.3.1/go.mod h1:mNbDhrYvFCNa1kEJslMOAzplZm4EiBtFFjfbQMxbx4E=
 github.com/zostay/go-esv-api v0.0.0-20201114154340-be89d3d9bb0c h1:kJ8WMYYfkn4NlRn+rN4zxvrM4dq/N1GXVyzn7TQSZiE=
