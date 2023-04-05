@@ -15,6 +15,8 @@ import (
 	"github.com/zostay/dotfiles-go/internal/mail"
 )
 
+const VersionNumber = "2.1.0"
+
 var (
 	cmd            *cobra.Command
 	allMail        bool
@@ -28,6 +30,7 @@ var (
 	cpuprofile     string
 	vacuumFirst    bool
 	vacuumOnly     bool
+	version        bool
 )
 
 func init() {
@@ -50,9 +53,15 @@ func init() {
 	cmd.PersistentFlags().StringVar(&cpuprofile, "cpuprofile", "", "write CPU profile to `file`")
 	cmd.PersistentFlags().BoolVar(&vacuumFirst, "vacuum-first", false, "vacuum the Mail directory before filtering")
 	cmd.PersistentFlags().BoolVar(&vacuumOnly, "vacuum-only", false, "vacuum the Mail directory without filtering")
+	cmd.PersistentFlags().BoolVar(&version, "version", false, "show the version information for the program")
 }
 
 func RunLabelMail(cmd *cobra.Command, args []string) {
+	if version {
+		fmt.Printf("label-mail v%s\n", VersionNumber)
+		return
+	}
+
 	if mailDir == "" {
 		panic(errors.New("maildir did not work"))
 	}
