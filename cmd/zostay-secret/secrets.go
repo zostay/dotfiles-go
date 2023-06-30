@@ -20,8 +20,8 @@ import (
 //
 //	secrets.Master()
 //
-// If --remote-only is set, this returns either secrets.SecureMain() or
-// secrets.InsecureMain() based on the --insecure option.
+// If --remote-only is set, this returns either secrets.SecureRemote() or
+// secrets.InsecureRemote() based on the --insecure option.
 //
 // If --local-only is set, this returns either secrets.SecureLocal() or
 // secrets.InsecureLocal() based on the --insecure option.
@@ -46,9 +46,9 @@ func secretKeeper() (secrets.Keeper, error) {
 	case remoteOnly:
 		var err error
 		if insecure {
-			k, err = secrets.InsecureMain()
+			k, err = secrets.InsecureRemote()
 		} else {
-			k, err = secrets.SecureMain()
+			k, err = secrets.SecureRemote()
 		}
 
 		if err != nil {

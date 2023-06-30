@@ -4,21 +4,21 @@
 // All secrets are kept in a Keeper. This is a simple abstraction around a
 // key/value store. From there, I have four major keepers that I use:
 //
-// 1. The master password Keeper is an in memory Keeper that allows me to store
-//    and retreive master passwords for the other secure Keepers. This runs as a
-//    service available only to the local machine.
+//  1. The master password Keeper is an in memory Keeper that allows me to store
+//     and retreive master passwords for the other secure Keepers. This runs as a
+//     service available only to the local machine.
 //
-// 2. The local insecure password Keeper is used to store secrets that need no
-//    special protections. These are stored similar to a netrc setup (but not
-//    using netrc).
+//  2. The local insecure password Keeper is used to store secrets that need no
+//     special protections. These are stored similar to a netrc setup (but not
+//     using netrc).
 //
-// 3. The local secure password Keeper is a Keepass database, which replicates
-//    my remote secure password Keeper. This is also a backup I use in case
-//    LastPass decides to stop granting me access to my own data.
+//  3. The local secure password Keeper is a Keepass database, which replicates
+//     my remote secure password Keeper. This is also a backup I use in case
+//     LastPass decides to stop granting me access to my own data.
 //
-// 4. The remote secure password Keeper is a LastPass database that is sync'd
-//    with my other devices automtically. This contains both secure and insecre
-//    secrets.
+//  4. The remote secure password Keeper is a LastPass database that is sync'd
+//     with my other devices automtically. This contains both secure and insecre
+//     secrets.
 package secrets
 
 import (
@@ -183,8 +183,8 @@ func finishLastPass(u, p string) {
 	}
 }
 
-// InsecureMain returns my primary secret Keeper for storing insecure secrets.
-func InsecureMain() (Keeper, error) {
+// InsecureRemote returns my primary secret Keeper for storing insecure secrets.
+func InsecureRemote() (Keeper, error) {
 	u, p, err := setupLastPass()
 	if err != nil {
 		return nil, err
@@ -203,8 +203,8 @@ func InsecureMain() (Keeper, error) {
 	return rinsecure, nil
 }
 
-// SecureMain returns my primary secret Keeper for stroing secure secrets.
-func SecureMain() (Keeper, error) {
+// SecureRemote returns my primary secret Keeper for storing secure secrets.
+func SecureRemote() (Keeper, error) {
 	u, p, err := setupLastPass()
 	if err != nil {
 		return nil, err
@@ -225,7 +225,7 @@ func SecureMain() (Keeper, error) {
 
 // Insecure returns my caching secret keeper for insecure secrets.
 func Insecure() (Keeper, error) {
-	src, err := InsecureMain()
+	src, err := InsecureRemote()
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +240,7 @@ func Insecure() (Keeper, error) {
 
 // Secure returns my caching secret keeper for secure secrets.
 func Secure() (Keeper, error) {
-	src, err := SecureMain()
+	src, err := SecureRemote()
 	if err != nil {
 		return nil, err
 	}
