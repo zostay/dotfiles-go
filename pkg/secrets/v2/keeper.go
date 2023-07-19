@@ -48,16 +48,18 @@ type Keeper interface {
 	// should now be considered invalid.
 	SetSecret(ctx context.Context, secret Secret) (Secret, error)
 
-	// CopySecret copies a secret to a new location while keeping the secret in
-	// the existing location as well. The secret passed in remains valid. A new
-	// secret representing the newly made copy is returned.
-	CopySecret(ctx context.Context, secret Secret, location string) (Secret, error)
+	// CopySecret copies the identified secret to a new location while keeping
+	// the secret in the existing location as well. A new secret representing
+	// the new copy is returned. This should return ErrNotFound if the secret
+	// is not found.
+	CopySecret(ctx context.Context, id string, location string) (Secret, error)
 
-	// MoveSecret moves a secret to a new location. The passed in secret is
-	// invalid after this call is made. The newly moved secret object is
-	// returned.
-	MoveSecret(ctx context.Context, secret Secret, location string) (Secret, error)
+	// MoveSecret moves a secret to a new location. The passed in ID is The
+	// moved secret object is returned. This should return ErrNotFound if the
+	// secret is not found.
+	MoveSecret(ctx context.Context, id string, location string) (Secret, error)
 
-	// DeleteSecret removes the secret.
+	// DeleteSecret removes the secret. This should not return ErrNotFound even
+	// if the secret was not found.
 	DeleteSecret(ctx context.Context, id string) error
 }

@@ -7,7 +7,6 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/gob"
-	"fmt"
 
 	"github.com/oklog/ulid/v2"
 )
@@ -110,9 +109,9 @@ func (i *Internal) ListLocations(context.Context) ([]string, error) {
 	return locs, nil
 }
 
-// ListSecrets returns a list of all the secrets in the store.
+// ListSecrets returns a list of all the secret IDs at the given location.
 func (i *Internal) ListSecrets(_ context.Context, loc string) ([]string, error) {
-	names := make([]string, 0, len(i.secrets)>>1)
+	ids := make([]string, 0, len(i.secrets)>>1)
 	for _, ct := range i.secrets {
 		sec, err := i.decodeSecret(ct)
 		if err != nil {
@@ -120,10 +119,10 @@ func (i *Internal) ListSecrets(_ context.Context, loc string) ([]string, error) 
 		}
 
 		if sec.Location() == loc {
-			names = append(names, sec.Name())
+			ids = append(ids, sec.ID())
 		}
 	}
-	return names, nil
+	return ids, nil
 }
 
 // GetSecret retrieves the identified secret from the internal memory store.
@@ -169,7 +168,12 @@ func (i *Internal) SetSecret(_ context.Context, secret Secret) (Secret, error) {
 
 // CopySecret copies the secret into a new location while leaving the original
 // in the old location.
-func (i *Internal) CopySecret(_ context.Context, secret Secret, location string) (Secret, error) {
+func (i *Internal) CopySecret(ctx context.Context, id string, location string) (Secret, error) {
+	secret, err := i.GetSecret(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
 	cp := NewSingleFromSecret(secret)
 	cp.location = location
 	cp.id = ulid.Make().String()
@@ -184,9 +188,10 @@ func (i *Internal) CopySecret(_ context.Context, secret Secret, location string)
 }
 
 // MoveSecret moves the secret into another location of the memory store.
-func (i *Internal) MoveSecret(_ context.Context, secret Secret, location string) (Secret, error) {
-	if _, hasSecret := i.secrets[secret.ID()]; !hasSecret {
-		return nil, fmt.Errorf("(*Internal).MoveSecret: no secret found for ID %q", secret.ID())
+func (i *Internal) MoveSecret(ctx context.Context, id string, location string) (Secret, error) {
+	secret, err := i.GetSecret(ctx, id)
+	if err != nil {
+		return nil, err
 	}
 
 	mv := NewSingleFromSecret(secret)
