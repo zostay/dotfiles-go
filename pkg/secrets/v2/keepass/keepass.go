@@ -122,7 +122,7 @@ func (k *Keepass) ListSecrets(
 				continue
 			}
 
-			secrets = append(secrets, e.GetTitle())
+			secrets = append(secrets, makeID(e.UUID))
 		}
 	}
 
@@ -276,15 +276,18 @@ func (k *Keepass) performCopy(
 // database.
 func (k *Keepass) CopySecret(
 	ctx context.Context,
-	secret secrets.Secret,
-	grp string,
+	id, grp string,
 ) (secrets.Secret, error) {
 	g := k.ensureGroupExists(grp)
+	secret, err := k.GetSecret(ctx, id)
+	if err != nil {
+		return nil, err
+	}
 	newSec := fromSecret(k.db, secret, false)
 
 	k.performCopy(ctx, newSec, g)
 
-	err := k.save()
+	err = k.save()
 	if err != nil {
 		return nil, err
 	}
@@ -295,9 +298,13 @@ func (k *Keepass) CopySecret(
 // MoveSecret moves the secret into a different group in the Keepass database.
 func (k *Keepass) MoveSecret(
 	ctx context.Context,
-	secret secrets.Secret,
-	grp string,
+	id, grp string,
 ) (secrets.Secret, error) {
+	secret, err := k.GetSecret(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
 	oldGrp := k.getGroup(secret.Location())
 	newGrp := k.ensureGroupExists(grp)
 
@@ -314,7 +321,7 @@ func (k *Keepass) MoveSecret(
 		}
 	}
 
-	err := k.save()
+	err = k.save()
 	if err != nil {
 		return nil, err
 	}
