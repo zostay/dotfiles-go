@@ -18,6 +18,8 @@ type Keepass struct {
 	db *keepass.Database // the loaded db struct
 }
 
+var _ secrets.Keeper = &Keepass{}
+
 // NewKeepassNoVerify creates a new Keepass Keeper and returns it. It does not
 // attempt to read the database or verify it is setup correctly.
 func NewKeepassNoVerify(path, master string) (*Keepass, error) {
@@ -154,6 +156,31 @@ func (k *Keepass) GetSecret(
 		}
 	}
 	return nil, secrets.ErrNotFound
+}
+
+// GetSecretsByName retrieves all secrets with teh given name from the Keepass
+// database.
+func (k *Keepass) GetSecretsByName(
+	ctx context.Context,
+	name string,
+) ([]secrets.Secret, error) {
+	secrets := []secrets.Secret{}
+	kw := k.Walker(true)
+	for kw.Next() {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			e := kw.Entry()
+			dir := kw.Dir()
+
+			if e.GetTitle() == name {
+				secrets = append(secrets, newSecret(k.db, e, dir))
+			}
+		}
+	}
+
+	return secrets, nil
 }
 
 // getGroup retrieves the named group or returns nil.

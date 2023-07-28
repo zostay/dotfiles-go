@@ -31,6 +31,14 @@ func NewLowSecurity(path string) *LowSecurity {
 	}
 }
 
+// NewLowSecurityCustom creates a new low security secret keeper with the given
+// loader/saver.
+func NewLowSecurityCustom(ls fssafe.LoaderSaver) *LowSecurity {
+	return &LowSecurity{
+		LoaderSaver: ls,
+	}
+}
+
 func makeID() string {
 	return ulid.MustNew(ulid.Now(), nil).String()
 }

@@ -15,8 +15,8 @@ type Secret interface {
 	// Username returns the username for the secret.
 	Username() string
 
-	// Single returns the secret value.
-	Secret() string
+	// Secret returns the secret value.
+	Password() string
 
 	// Type returns the type of the secret.
 	Type() string
@@ -47,9 +47,9 @@ type SettableUsername interface {
 	SetUsername(string)
 }
 
-type SettableSecret interface {
+type SettablePassword interface {
 	// SetSecret sets the secret value.
-	SetSecret(string)
+	SetPassword(string)
 }
 
 type SettableType interface {

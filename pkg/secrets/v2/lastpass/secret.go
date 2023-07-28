@@ -30,7 +30,7 @@ func fromSecret(secret secrets.Secret) *Secret {
 			ID:       secret.ID(),
 			Name:     secret.Name(),
 			Username: secret.Username(),
-			Password: secret.Secret(),
+			Password: secret.Password(),
 			URL:      secret.Url().String(),
 			Group:    secret.Location(),
 			Notes:    writeNotes(secret.Type(), secret.Fields()),
@@ -64,11 +64,11 @@ func (s *Secret) SetUsername(username string) {
 	s.Account.Username = username
 }
 
-func (s *Secret) Secret() string {
+func (s *Secret) Password() string {
 	return s.Account.Password
 }
 
-func (s *Secret) SetSecret(secret string) {
+func (s *Secret) SetPassword(secret string) {
 	s.Account.Password = secret
 }
 

@@ -117,7 +117,7 @@ func (s *Secret) applyChanges(secret secrets.Secret) {
 
 	s.setEntryValue(keyTitle, secret.Name(), false)
 	s.setEntryValue(keyUsername, secret.Username(), false)
-	s.setEntryValue(keySecret, secret.Secret(), true)
+	s.setEntryValue(keySecret, secret.Password(), true)
 	s.setEntryValue(keyType, secret.Type(), false)
 	s.setEntryValue(keyURL, secret.Url().String(), false)
 }
@@ -182,7 +182,7 @@ func (s *Secret) whileUnlocked(run func()) {
 	run()
 }
 
-func (s *Secret) Secret() string {
+func (s *Secret) Password() string {
 	if secret, hasNewSecret := s.newFields[keySecret]; hasNewSecret {
 		return secret
 	}
@@ -194,7 +194,7 @@ func (s *Secret) Secret() string {
 	return secret
 }
 
-func (s *Secret) SetSecret(secret string) {
+func (s *Secret) SetPassword(secret string) {
 	s.set(keySecret, secret)
 }
 
@@ -237,7 +237,7 @@ func (s *Secret) GetField(key string) string {
 
 func (s *Secret) SetField(key, value string) {
 	if key == keySecret {
-		s.SetSecret(value)
+		s.SetPassword(value)
 	}
 	s.set(key, value)
 }
