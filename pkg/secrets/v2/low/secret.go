@@ -32,7 +32,7 @@ func (s *Secret) MarshalYAML() (interface{}, error) {
 	return map[string]any{
 		"Name":         s.Single.Name(),
 		"Username":     s.Single.Username(),
-		"Secret":       s.Single.Secret(),
+		"Password":     s.Single.Password(),
 		"Type":         s.Single.Type(),
 		"Location":     s.Single.Location(),
 		"URL":          s.Single.Url().String(),
@@ -72,8 +72,8 @@ func (s *Secret) UnmarshalYAML(node *yaml.Node) error {
 			s.Single.SetName(node.Content[i+1].Value)
 		case "Username":
 			s.Single.SetUsername(node.Content[i+1].Value)
-		case "Secret":
-			s.Single.SetSecret(node.Content[i+1].Value)
+		case "Password":
+			s.Single.SetPassword(node.Content[i+1].Value)
 		case "Type":
 			s.Single.SetType(node.Content[i+1].Value)
 		case "Location":

@@ -59,7 +59,8 @@ func WithFields(fields map[string]string) SingleOption {
 }
 
 // WithID sets the ID of the secret, which is useful when copying a secret using
-// NewSingleFromSecret.
+// NewSingleFromSecret or when initializing a secret with a known ID using
+// NewSecret.
 func WithID(id string) SingleOption {
 	return option(func(s *Single) {
 		s.id = id
@@ -82,11 +83,11 @@ func WithUsername(username string) SingleOption {
 	})
 }
 
-// WithSecret sets the password of the secret for use when copying a secret
+// WithPassword sets the password of the secret for use when copying a secret
 // using NewSingleFromSecret.
-func WithSecret(secret string) SingleOption {
+func WithPassword(secret string) SingleOption {
 	return option(func(s *Single) {
-		s.secret = secret
+		s.password = secret
 	})
 }
 
@@ -95,7 +96,7 @@ type Single struct {
 	id       string // the unique identifier
 	name     string // the name given to the secret
 	username string // the username to store
-	secret   string // the secret/password/key associated with the secret
+	password string // the secret/password/key associated with the secret
 
 	typ    string            // the type of the secret
 	fields map[string]string // additional fields associated with the secret
@@ -106,12 +107,11 @@ type Single struct {
 }
 
 // NewSecret creates a secret from the given settings.
-func NewSecret(id, name, username, secret string, opts ...SingleOption) *Single {
+func NewSecret(name, username, password string, opts ...SingleOption) *Single {
 	sec := &Single{
-		id:       id,
 		name:     name,
 		username: username,
-		secret:   secret,
+		password: password,
 		fields:   map[string]string{},
 	}
 
@@ -129,7 +129,7 @@ func NewSingleFromSecret(s Secret, opts ...SingleOption) *Single {
 		id:       s.ID(),
 		name:     s.Name(),
 		username: s.Username(),
-		secret:   s.Secret(),
+		password: s.Password(),
 
 		typ:    s.Type(),
 		fields: s.Fields(),
@@ -172,13 +172,13 @@ func (s *Single) SetUsername(username string) {
 }
 
 // Single returns the secret of the secret.
-func (s *Single) Secret() string {
-	return s.secret
+func (s *Single) Password() string {
+	return s.password
 }
 
 // SetSecret sets the secret of the secret.
-func (s *Single) SetSecret(secret string) {
-	s.secret = secret
+func (s *Single) SetPassword(password string) {
+	s.password = password
 }
 
 // Type returns the type of the secret.
