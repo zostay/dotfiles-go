@@ -67,11 +67,12 @@ func RunLabelMail(cmd *cobra.Command, args []string) {
 	}
 
 	filter, err := mail.NewFilter(mailDir, rulesFile, localRulesFile)
-	filter.SetDebugLevel(verbose)
-	filter.SetDryRun(dryRun)
 	if err != nil {
 		panic(err)
 	}
+
+	filter.SetDebugLevel(verbose)
+	filter.SetDryRun(dryRun)
 
 	if !allMail {
 		filter.LimitFilterToRecent(2 * time.Hour)
