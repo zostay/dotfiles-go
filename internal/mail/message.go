@@ -746,7 +746,7 @@ var (
 				cp.Scolor(
 					"action", "message header ",
 					"header", "\"Subject\"",
-					"action", " passes cotnains subject folded case test: ",
+					"action", " passes contains subject folded case test: ",
 					"value", fmt.Sprintf("%q", c.SubjectContainsFold),
 				),
 			}, err
