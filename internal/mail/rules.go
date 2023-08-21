@@ -402,12 +402,12 @@ func (crs CompiledRules) FolderRules(now time.Time) CompiledFolderRules {
 		fcrs.Add(folder, cr)
 
 		if cr.IsMoving() && folder != "" {
-			andClearInbox := cr
+			andClearInbox := *cr
 			andClearInbox.Move = ""
 			andClearInbox.Folder = cr.Move
 			andClearInbox.Clear = []string{"\\Inbox"}
 
-			fcrs.Add(cr.Move, andClearInbox)
+			fcrs.Add(cr.Move, &andClearInbox)
 		}
 	}
 

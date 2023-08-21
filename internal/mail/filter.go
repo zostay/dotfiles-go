@@ -80,6 +80,11 @@ func NewFilter(
 	}, nil
 }
 
+// AllRules is really only useful for printing and debugging.
+func (fi *Filter) AllRules() CompiledRules {
+	return fi.rules
+}
+
 // SetDebugLevel turns on debug logging to the given level when a true value is
 // passed.
 func (fi *Filter) SetDebugLevel(debug int) {

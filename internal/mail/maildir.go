@@ -18,6 +18,24 @@ func NewMailDirFolder(root, folder string) *DirFolder {
 	return &DirFolder{root, folder}
 }
 
+// EnsureExists creates the folder if it does not already exist.
+func (f *DirFolder) EnsureExists() error {
+	paths := []string{f.Path()}
+	paths = append(paths, f.MessageDirPaths()...)
+	paths = append(paths, f.TempDirPath())
+
+	for _, path := range paths {
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			err := os.MkdirAll(path, 0700)
+			if err != nil {
+				return fmt.Errorf("unable to create maildir %q (failed to create dir %q)q: %w", f.basename, path, err)
+			}
+		}
+	}
+
+	return nil
+}
+
 // Root returns the path to the mail root.
 func (f *DirFolder) Root() string { return f.root }
 

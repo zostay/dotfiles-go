@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/kr/pretty"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -42,10 +43,15 @@ func RunLabelMessage(cmd *cobra.Command, args []string) {
 	}
 
 	filter, err := mail.NewFilter(mailDir, rulesFile, localRulesFile)
-	filter.SetDryRun(dryRun)
-	filter.SetDebugLevel(verbose)
 	if err != nil {
 		panic(err)
+	}
+
+	filter.SetDryRun(dryRun)
+	filter.SetDebugLevel(verbose)
+
+	if verbose > 3 {
+		pretty.Print(filter.AllRules())
 	}
 
 	folder := args[0]

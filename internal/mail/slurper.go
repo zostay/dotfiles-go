@@ -84,8 +84,13 @@ func (r *DirSlurper) Folder() string {
 
 // MoveTo moves the message to the target folder.
 func (r *DirSlurper) MoveTo(target *DirFolder) error {
+	err := target.EnsureExists()
+	if err != nil {
+		return err
+	}
+
 	targetFile := path.Join(target.Path(), r.rd, r.key+r.FlagSuffix())
-	err := os.Rename(r.Filename(), targetFile)
+	err = os.Rename(r.Filename(), targetFile)
 	if err != nil {
 		return err
 	}
