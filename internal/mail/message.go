@@ -195,12 +195,13 @@ func (m *Message) Keywords() ([]string, error) {
 		allKs = append(allKs, splits...)
 	}
 
-	return ks, err
+	return allKs, err
 }
 
 // KeywordsSet returns the contents of the Keywords header as a set or an error.
 func (m *Message) KeywordsSet() (km map[string]struct{}, err error) {
-	ks, err := m.Keywords()
+	var ks []string
+	ks, err = m.Keywords()
 	if err != nil {
 		return
 	}
