@@ -599,6 +599,30 @@ var (
 			return testDomain("To", "to", c.ToDomain, to, err)
 		},
 
+		// match if the message has a matching Cc address
+		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
+			if c.Cc == "" {
+				return testResult{true, cp.Scolor("base", "no cc test")}, nil
+			}
+
+			*tests++
+
+			cc, err := m.AddressList("Cc")
+			return testAddress("Cc", "cc", c.Cc, cc, err)
+		},
+
+		// match if the message has a matching domain in the Cc header
+		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
+			if c.CcDomain == "" {
+				return testResult{true, cp.Scolor("base", "no cc domain test")}, nil
+			}
+
+			*tests++
+
+			cc, err := m.AddressList("Cc")
+			return testDomain("Cc", "cc", c.CcDomain, cc, err)
+		},
+
 		// match if the message has a matching Sender address
 		func(m *Message, c *CompiledRule, tests *int) (testResult, error) {
 			if c.Sender == "" {

@@ -42,6 +42,12 @@ type Match struct {
 	// ToDomain is used to match email address domains in the To header.
 	ToDomain string `yaml:"to_domain"`
 
+	// Cc is used to match email addresses in the Cc header.
+	Cc string `yaml:"cc"`
+
+	// CcDomain is used to match email address domains in the Cc header.
+	CcDomain string `yaml:"cc_domain"`
+
 	// Sender is used to match email addresses in the Sender header.
 	Sender string `yaml:"sender"`
 
