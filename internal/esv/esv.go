@@ -6,7 +6,7 @@ import (
 
 	"github.com/zostay/go-esv-api/pkg/esv"
 
-	"github.com/zostay/dotfiles-go/pkg/secrets"
+	"github.com/zostay/dotfiles-go/internal/keeper"
 )
 
 func RandomBook() Book {
@@ -44,17 +44,12 @@ func RandomVerse() (string, error) {
 }
 
 func GetVerse(ref string) (string, error) {
-	s, err := secrets.Insecure()
+	token, err := keeper.GetSecret("ESV_API_TOKEN")
 	if err != nil {
 		return "", err
 	}
 
-	token, err := s.GetSecret("ESV_API_TOKEN")
-	if err != nil {
-		return "", err
-	}
-
-	c := esv.New(token.Value)
+	c := esv.New(token.Password())
 	tr, err := c.PassageText(ref,
 		esv.WithIncludeVerseNumbers(false),
 		esv.WithIncludeHeadings(false),

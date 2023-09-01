@@ -16,7 +16,7 @@ import (
 	"github.com/zostay/go-email/v2/message"
 	"github.com/zostay/go-email/v2/message/walk"
 
-	"github.com/zostay/dotfiles-go/pkg/secrets"
+	"github.com/zostay/dotfiles-go/internal/keeper"
 )
 
 const (
@@ -30,7 +30,7 @@ const (
 
 var (
 	// FromEmail is the email address to use as the from email address.
-	FromEmail = secrets.MustGet(secrets.Secure, "GIT_EMAIL_HOME")
+	FromEmail = keeper.MustGetSecret("GIT_EMAIL_HOME").Password()
 
 	// FromEmailAddress is the addr.Address created from FromEmail.
 	FromEmailAddress addr.AddressList

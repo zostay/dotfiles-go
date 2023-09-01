@@ -12,9 +12,8 @@ import (
 	"github.com/nsf/termbox-go"
 	"github.com/spf13/cobra"
 
-	"github.com/zostay/dotfiles-go/internal/keeper"
+	zkeeper "github.com/zostay/dotfiles-go/internal/keeper"
 	"github.com/zostay/dotfiles-go/pkg/nasapod"
-	"github.com/zostay/dotfiles-go/pkg/secrets"
 )
 
 var (
@@ -76,8 +75,9 @@ func init() {
 	cmd.AddCommand(rangeCmd)
 	cmd.AddCommand(randomCmd)
 
-	keeper.RequiresSecretKeeper()
-	apiKey := secrets.MustGet(secrets.Secure, "NASA_API_KEY")
+	zkeeper.RequiresSecretKeeper()
+	apiSec := zkeeper.MustGetSecret("NASA_API_KEY")
+	apiKey := apiSec.Password()
 	c = nasapod.New(apiKey)
 
 	if err := termbox.Init(); err != nil {
