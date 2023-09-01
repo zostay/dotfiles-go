@@ -9,7 +9,7 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/zostay/dotfiles-go/pkg/secrets"
+	"github.com/zostay/ghost/pkg/keeper"
 )
 
 const (
@@ -29,12 +29,7 @@ func checkPing(ctx context.Context, n int) bool {
 				return
 			}
 
-			master, err := secrets.Master()
-			if err != nil {
-				return
-			}
-
-			err = master.(*secrets.Http).Ping(ctx)
+			err := keeper.CheckServer()
 			ok := err == nil
 			pinger <- ok
 			time.Sleep(PingPeriod)

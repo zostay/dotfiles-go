@@ -16,16 +16,16 @@ import (
 	"github.com/zostay/go-email/v2/message"
 	"github.com/zostay/go-email/v2/message/header"
 
+	"github.com/zostay/dotfiles-go/internal/keeper"
 	"github.com/zostay/dotfiles-go/internal/xtrings"
-	"github.com/zostay/dotfiles-go/pkg/secrets"
 )
 
 var (
 	// SASLUser contains the username to use to login
-	SASLUser = secrets.MustGet(secrets.Secure, "LABEL_MAIL_USERNAME")
+	SASLUser = keeper.MustGetSecret("LABEL_MAIL_USERNAME").Password()
 
 	// SASLPass contsint eh password to use to login
-	SASLPass = secrets.MustGet(secrets.Secure, "LABEL_MAIL_PASSWORD")
+	SASLPass = keeper.MustGetSecret("LABEL_MAIL_PASSWORD").Password()
 )
 
 // Message represents a MIME message which may be partially or fully read in.
