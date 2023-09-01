@@ -60,9 +60,14 @@ func checkPing(ctx context.Context, n int) bool {
 func startSecretKeeper() {
 	fmt.Fprintln(os.Stderr, "Starting secret keeper background daemon.")
 
-	zs, err := exec.LookPath("zostay-secret")
+	ghostPath, err := exec.LookPath("ghost")
 	if err != nil {
-		panic(fmt.Errorf("unable to find program %s: %w", "zostay-secret", err))
+		panic(fmt.Errorf("unable to find program %s: %w", "ghost", err))
+	}
+
+	keeperName := os.Getenv("ZOSTAY_SECRET_SERVICE_KEEPER")
+	if keeperName == "" {
+		panic(fmt.Errorf("please set ZOSTAY_SECRET_SERVICE_KEEPER in the environment to name the ghost secret keeper to use for the background service"))
 	}
 
 	mydir, err := os.Getwd()
@@ -75,7 +80,7 @@ func startSecretKeeper() {
 		stderr = os.Stderr
 	}
 
-	args := []string{zs, "keeper"}
+	args := []string{ghostPath, "service", "start", "--keeper", keeperName, "--enforce-all-policies"}
 	attr := os.ProcAttr{
 		Dir:   mydir,
 		Env:   os.Environ(),
@@ -83,7 +88,7 @@ func startSecretKeeper() {
 		Sys:   nil,
 	}
 
-	p, err := os.StartProcess(zs, args, &attr)
+	p, err := os.StartProcess(ghostPath, args, &attr)
 	if err != nil {
 		panic(fmt.Errorf("failure to start secret keeper daemon: %w", err))
 	}
