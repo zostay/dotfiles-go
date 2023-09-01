@@ -7,6 +7,13 @@ import (
 	"github.com/zostay/ghost/pkg/config"
 	"github.com/zostay/ghost/pkg/keeper"
 	"github.com/zostay/ghost/pkg/secrets"
+
+	_ "github.com/zostay/ghost/pkg/secrets/cache"
+	_ "github.com/zostay/ghost/pkg/secrets/http"
+	_ "github.com/zostay/ghost/pkg/secrets/human"
+	_ "github.com/zostay/ghost/pkg/secrets/keepass"
+	_ "github.com/zostay/ghost/pkg/secrets/lastpass"
+	_ "github.com/zostay/ghost/pkg/secrets/policy"
 )
 
 func MustGetSecret(name string) secrets.Secret {
@@ -19,6 +26,10 @@ func MustGetSecret(name string) secrets.Secret {
 
 func GetSecret(name string) (secrets.Secret, error) {
 	c := config.Instance()
+	if err := c.Load(""); err != nil {
+		return nil, fmt.Errorf("unable to load ghost configuration: %w", err)
+	}
+
 	ctx := keeper.WithBuilder(context.Background(), c)
 	kpr, err := keeper.Build(ctx, c.MasterKeeper)
 	if err != nil {
