@@ -2,7 +2,8 @@ package esv
 
 var Books = []Book{
 	{
-		name: "Genesis",
+		name:      "Genesis",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -390,7 +391,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Exodus",
+		name:      "Exodus",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -698,7 +700,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Leviticus",
+		name:      "Leviticus",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -918,7 +921,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Numbers",
+		name:      "Numbers",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -1245,7 +1249,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Deuteronomy",
+		name:      "Deuteronomy",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -1490,7 +1495,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Joshua",
+		name:      "Joshua",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -1660,7 +1666,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Judges",
+		name:      "Judges",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -1820,7 +1827,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Ruth",
+		name:      "Ruth",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -1846,7 +1854,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "1 Samuel",
+		name:      "1 Samuel",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -2054,7 +2063,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "2 Samuel",
+		name:      "2 Samuel",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -2233,7 +2243,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "1 Kings",
+		name:      "1 Kings",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -2442,7 +2453,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "2 Kings",
+		name:      "2 Kings",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -2627,7 +2639,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "1 Chronicles",
+		name:      "1 Chronicles",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -2868,7 +2881,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "2 Chronicles",
+		name:      "2 Chronicles",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -3079,7 +3093,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Ezra",
+		name:      "Ezra",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -3154,7 +3169,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Nehemiah",
+		name:      "Nehemiah",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -3261,7 +3277,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Esther",
+		name:      "Esther",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -3308,7 +3325,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Job",
+		name:      "Job",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -3581,7 +3599,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Psalms",
+		name:      "Psalms",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{2, 1}, &ChapterVerse{2, 2}, &ChapterVerse{2, 3},
@@ -4201,7 +4220,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Proverbs",
+		name:      "Proverbs",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -4435,7 +4455,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Ecclesiastes",
+		name:      "Ecclesiastes",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -4496,7 +4517,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Song of Solomon",
+		name:      "Song of Solomon",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -4530,7 +4552,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Isaiah",
+		name:      "Isaiah",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -4858,7 +4881,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Jeremiah",
+		name:      "Jeremiah",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -5204,7 +5228,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Lamentations",
+		name:      "Lamentations",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -5248,7 +5273,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Ezekiel",
+		name:      "Ezekiel",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -5571,7 +5597,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Daniel",
+		name:      "Daniel",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -5665,7 +5692,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Hosea",
+		name:      "Hosea",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -5719,7 +5747,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Joel",
+		name:      "Joel",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -5742,7 +5771,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Amos",
+		name:      "Amos",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -5784,7 +5814,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Obadiah",
+		name:      "Obadiah",
+		justVerse: true,
 		verses: []VerseRef{&JustVerse{1},
 			&JustVerse{2}, &JustVerse{3}, &JustVerse{4}, &JustVerse{5},
 			&JustVerse{6}, &JustVerse{7}, &JustVerse{8}, &JustVerse{9},
@@ -5794,7 +5825,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Jonah",
+		name:      "Jonah",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -5811,7 +5843,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Micah",
+		name:      "Micah",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -5842,7 +5875,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Nahum",
+		name:      "Nahum",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -5859,7 +5893,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Habakkuk",
+		name:      "Habakkuk",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -5878,7 +5913,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Zephaniah",
+		name:      "Zephaniah",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -5896,7 +5932,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Haggai",
+		name:      "Haggai",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -5911,7 +5948,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Zechariah",
+		name:      "Zechariah",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -5969,7 +6007,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Malachi",
+		name:      "Malachi",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -5988,7 +6027,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Matthew",
+		name:      "Matthew",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -6261,7 +6301,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Mark",
+		name:      "Mark",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -6436,7 +6477,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Luke",
+		name:      "Luke",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -6729,7 +6771,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "John",
+		name:      "John",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -6954,7 +6997,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Acts",
+		name:      "Acts",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7211,7 +7255,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Romans",
+		name:      "Romans",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7324,7 +7369,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "1 Corinthians",
+		name:      "1 Corinthians",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7438,7 +7484,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "2 Corinthians",
+		name:      "2 Corinthians",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7507,7 +7554,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Galatians",
+		name:      "Galatians",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7549,7 +7597,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Ephesians",
+		name:      "Ephesians",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7593,7 +7642,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Philippians",
+		name:      "Philippians",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7624,7 +7674,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Colossians",
+		name:      "Colossians",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7653,7 +7704,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "1 Thessalonians",
+		name:      "1 Thessalonians",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7680,7 +7732,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "2 Thessalonians",
+		name:      "2 Thessalonians",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7697,7 +7750,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "1 Timothy",
+		name:      "1 Timothy",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7730,7 +7784,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "2 Timothy",
+		name:      "2 Timothy",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7756,7 +7811,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Titus",
+		name:      "Titus",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7773,7 +7829,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Philemon",
+		name:      "Philemon",
+		justVerse: true,
 		verses: []VerseRef{&JustVerse{1},
 			&JustVerse{2}, &JustVerse{3}, &JustVerse{4}, &JustVerse{5},
 			&JustVerse{6}, &JustVerse{7}, &JustVerse{8}, &JustVerse{9},
@@ -7784,7 +7841,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Hebrews",
+		name:      "Hebrews",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7865,7 +7923,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "James",
+		name:      "James",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7897,7 +7956,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "1 Peter",
+		name:      "1 Peter",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7928,7 +7988,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "2 Peter",
+		name:      "2 Peter",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7948,7 +8009,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "1 John",
+		name:      "1 John",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},
@@ -7979,7 +8041,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "2 John",
+		name:      "2 John",
+		justVerse: true,
 		verses: []VerseRef{&JustVerse{1},
 			&JustVerse{2}, &JustVerse{3}, &JustVerse{4}, &JustVerse{5},
 			&JustVerse{6}, &JustVerse{7}, &JustVerse{8}, &JustVerse{9},
@@ -7987,7 +8050,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "3 John",
+		name:      "3 John",
+		justVerse: true,
 		verses: []VerseRef{&JustVerse{1},
 			&JustVerse{2}, &JustVerse{3}, &JustVerse{4}, &JustVerse{5},
 			&JustVerse{6}, &JustVerse{7}, &JustVerse{8}, &JustVerse{9},
@@ -7996,7 +8060,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Jude",
+		name:      "Jude",
+		justVerse: true,
 		verses: []VerseRef{&JustVerse{1},
 			&JustVerse{2}, &JustVerse{3}, &JustVerse{4}, &JustVerse{5},
 			&JustVerse{6}, &JustVerse{7}, &JustVerse{8}, &JustVerse{9},
@@ -8007,7 +8072,8 @@ var Books = []Book{
 		},
 	},
 	{
-		name: "Revelation",
+		name:      "Revelation",
+		justVerse: false,
 		verses: []VerseRef{&ChapterVerse{1, 1},
 			&ChapterVerse{1, 2}, &ChapterVerse{1, 3}, &ChapterVerse{1, 4}, &ChapterVerse{1, 5},
 			&ChapterVerse{1, 6}, &ChapterVerse{1, 7}, &ChapterVerse{1, 8}, &ChapterVerse{1, 9},

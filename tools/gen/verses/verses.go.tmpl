@@ -4,6 +4,7 @@ var Books = []Book{
 {{- range .Books}}
     {
         name: "{{.Name}}",
+        justVerse: {{if eq 0 (index .Verses 0 0)}}true{{else}}false{{end}},
         verses: []VerseRef{
 {{- range $i, $v := .Verses}}
 {{- if eq 0 (index $v 0) -}}
